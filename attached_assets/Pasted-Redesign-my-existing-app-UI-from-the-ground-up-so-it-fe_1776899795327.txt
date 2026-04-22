@@ -1,0 +1,104 @@
+Redesign my existing app UI from the ground up so it feels like a premium, modern real estate media platform, not a generic AI-generated SaaS dashboard.
+
+App context:
+This product is for real estate photographers and videographers. Users manage shoots, upload/edit media, organize projects by property, run AI media tools like virtual staging, and share polished galleries with agents and clients. It competes more with SmugMug, Pixieset, and modern client gallery tools, but is specifically tailored to real estate media workflows.
+
+Primary goal:
+Make the interface feel custom-designed, premium, editorial, and trustworthy. It should feel like software built for creative professionals in real estate, with a clean luxury aesthetic. Avoid the typical “template SaaS” look that many AI-generated apps have.
+
+Design direction:
+- Minimal, refined, high-end look
+- Inspired by premium creative tools, luxury real estate branding, and modern editorial websites
+- Strong typography hierarchy
+- More visual breathing room
+- Softer, more intentional card styling
+- Cleaner spacing and alignment
+- Better use of imagery, previews, and empty states
+- Fewer generic boxes and less “dashboard clutter”
+- Should feel human-designed and brand-forward
+
+What to avoid:
+- Do not use the standard AI SaaS layout style with generic rounded cards everywhere
+- Avoid overly playful startup styling
+- Avoid overly bright gradients, neon accents, and cartoonish icons
+- Avoid making every section look like the same repeated component
+- Avoid default-feeling sidebars and boring metric cards
+- Avoid a UI that feels like an admin panel first
+- Do not make it look like a project management tool for engineers
+
+Brand feel:
+- Elegant
+- Premium
+- Creative
+- Real-estate-focused
+- Slightly cinematic
+- Calm and polished
+- Modern but not trendy to the point of looking cheap
+
+Color approach:
+- Use a restrained, elevated palette
+- Neutral foundation with one refined signature accent
+- Think soft whites, warm grays, charcoal, muted stone, subtle teal, deep slate, or dark evergreen
+- Keep contrast strong and accessible
+- The color system should feel intentional and branded, not default Tailwind
+
+Typography:
+- Upgrade typography so it feels designed
+- Use a more editorial pairing or styling approach
+- Headlines should feel premium and confident
+- Supporting text should be quieter and cleaner
+- Improve scale, weight, spacing, and rhythm throughout
+
+Layout changes:
+- Rework the current dashboard structure instead of just restyling existing boxes
+- Make the homepage feel like a creative studio control center rather than a generic KPI board
+- Prioritize:
+  1. active projects
+  2. recent shoots or uploads
+  3. upcoming deliverables
+  4. client galleries
+  5. AI tools
+- Reduce the emphasis on empty stat cards unless they are genuinely useful
+- Introduce richer modules such as:
+  - featured active project panel
+  - recent property shoots with thumbnails
+  - delivery status tracker
+  - client activity or gallery views
+  - AI tools section with clearer visual hierarchy
+  - storage/plan details in a more subtle way
+
+User experience goals:
+- The app should feel easier to scan
+- Key actions should be obvious
+- The user should immediately understand where to go next
+- Empty states should feel premium and helpful, not generic
+- Navigation should feel smooth and intentional
+- The interface should support both desktop and mobile gracefully
+
+Real estate-specific touches:
+- Organize projects by property address and client
+- Use visual thumbnails for listings/media
+- Make it feel natural for photographers delivering listing photos, videos, reels, floor plans, and AI-staged images
+- Include cues for listing status, delivery progress, and gallery sharing
+- Design components that make sense for property media, not generic files
+
+Implementation request:
+- Redesign the existing pages and components, not just colors
+- Improve spacing, alignment, typography, icons, and information hierarchy
+- Replace generic dashboard cards with more thoughtful layouts
+- Use higher-end UI patterns and custom styling details
+- Keep the UI practical and buildable
+- Make the result look like a polished production app
+
+Please do all of the following:
+1. Audit the current UI and identify what feels generic or AI-generated
+2. Redesign the visual system
+3. Redesign the dashboard layout
+4. Improve navigation and page structure
+5. Create a more premium component style system
+6. Update empty states, buttons, cards, forms, and lists
+7. Keep the code clean and reusable
+8. Preserve functionality while elevating the interface significantly
+
+Important:
+I do not want a generic “AI startup dashboard.” I want this to look like a custom product for a premium real estate media business.
