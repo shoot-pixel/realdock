@@ -56,6 +56,19 @@ lib/
 Job types: `sky_replacement`, `virtual_staging`, `declutter`, `day_to_dusk`, `hdr_enhancement`, `object_removal`, `color_grading`, `furniture_replacement`
 Mock processing states progress through [10, 25, 50, 75, 90, 100%]
 
+### Gallery Visibility (Client Access Control)
+Three visibility tiers settable from the Gallery Manage page:
+- `private` — gallery blocked, API returns 403, portal shows "Gallery Not Available"
+- `link_only` — accessible only to those with the share link (default)
+- `public` — open to anyone
+
+### Listing Preview (AI Feature)
+From the Gallery Portal, clients (or the photographer) can click "Listing Preview" to generate an AI-powered real estate listing for the property. Uses OpenAI (via Replit AI Integrations):
+- Generates a luxury headline, full description, 6 property highlights, estimated price
+- Shows platform mockups for Zillow, Redfin, Realtor.com, and Compass
+- Each platform tab shows the listing with platform-specific branding and styling
+- Falls back to sensible defaults if AI is unavailable
+
 ### Database Schema (8 tables)
 - `users`, `clients`, `projects`, `media_assets`, `ai_jobs`, `galleries`, `gallery_media`, `comments`, `favorites`
 

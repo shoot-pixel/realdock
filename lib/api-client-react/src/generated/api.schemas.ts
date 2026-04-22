@@ -380,11 +380,21 @@ export interface CreateAiJobBody {
   settings?: CreateAiJobBodySettings;
 }
 
+export type GalleryVisibility =
+  (typeof GalleryVisibility)[keyof typeof GalleryVisibility];
+
+export const GalleryVisibility = {
+  private: "private",
+  link_only: "link_only",
+  public: "public",
+} as const;
+
 export interface Gallery {
   id: number;
   projectId: number;
   name: string;
   shareToken: string;
+  visibility: GalleryVisibility;
   isPublic: boolean;
   isPasswordProtected: boolean;
   allowDownload: boolean;
@@ -402,8 +412,18 @@ export interface Gallery {
   createdAt: string;
 }
 
+export type CreateGalleryBodyVisibility =
+  (typeof CreateGalleryBodyVisibility)[keyof typeof CreateGalleryBodyVisibility];
+
+export const CreateGalleryBodyVisibility = {
+  private: "private",
+  link_only: "link_only",
+  public: "public",
+} as const;
+
 export interface CreateGalleryBody {
   name: string;
+  visibility?: CreateGalleryBodyVisibility;
   isPublic?: boolean;
   isPasswordProtected?: boolean;
   /** @nullable */
@@ -418,8 +438,18 @@ export interface CreateGalleryBody {
   clientMessage?: string | null;
 }
 
+export type UpdateGalleryBodyVisibility =
+  (typeof UpdateGalleryBodyVisibility)[keyof typeof UpdateGalleryBodyVisibility];
+
+export const UpdateGalleryBodyVisibility = {
+  private: "private",
+  link_only: "link_only",
+  public: "public",
+} as const;
+
 export interface UpdateGalleryBody {
   name?: string;
+  visibility?: UpdateGalleryBodyVisibility;
   isPublic?: boolean;
   isPasswordProtected?: boolean;
   /** @nullable */
@@ -549,6 +579,33 @@ export interface Subscription {
   /** @nullable */
   renewalDate?: string | null;
   features: string[];
+}
+
+export type ListingPreviewPlatformsItem = {
+  name: string;
+  tagline: string;
+};
+
+export interface ListingPreview {
+  propertyName: string;
+  address: string;
+  headline: string;
+  description: string;
+  highlights: string[];
+  suggestedPrice: string;
+  /** @nullable */
+  bedrooms?: number | null;
+  /** @nullable */
+  bathrooms?: number | null;
+  /** @nullable */
+  squareFeet?: number | null;
+  photoUrls: string[];
+  platforms: ListingPreviewPlatformsItem[];
+  generatedAt: string;
+}
+
+export interface GenerateListingPreviewParams {
+  token: string;
 }
 
 export type ListProjectsParams = {

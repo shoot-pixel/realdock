@@ -7,6 +7,7 @@ export const galleriesTable = pgTable("galleries", {
   projectId: integer("project_id").notNull(),
   name: text("name").notNull(),
   shareToken: text("share_token").notNull().unique(),
+  visibility: text("visibility").notNull().default("link_only"),
   isPublic: boolean("is_public").notNull().default(true),
   isPasswordProtected: boolean("is_password_protected").notNull().default(false),
   password: text("password"),

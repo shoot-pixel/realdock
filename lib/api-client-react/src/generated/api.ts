@@ -33,6 +33,7 @@ import type {
   HealthStatus,
   ListMediaParams,
   ListProjectsParams,
+  ListingPreview,
   LoginBody,
   MediaAsset,
   Project,
@@ -2599,6 +2600,90 @@ export function useGetPublicGallery<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary AI-generate a real estate listing preview for the gallery
+ */
+export const getGenerateListingPreviewUrl = (token: string) => {
+  return `/api/gallery/${token}/listing-preview`;
+};
+
+export const generateListingPreview = async (
+  token: string,
+  options?: RequestInit,
+): Promise<ListingPreview> => {
+  return customFetch<ListingPreview>(getGenerateListingPreviewUrl(token), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getGenerateListingPreviewMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateListingPreview>>,
+    TError,
+    { token: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateListingPreview>>,
+  TError,
+  { token: string },
+  TContext
+> => {
+  const mutationKey = ["generateListingPreview"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateListingPreview>>,
+    { token: string }
+  > = (props) => {
+    const { token } = props ?? {};
+
+    return generateListingPreview(token, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateListingPreviewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateListingPreview>>
+>;
+
+export type GenerateListingPreviewMutationError = ErrorType<void>;
+
+/**
+ * @summary AI-generate a real estate listing preview for the gallery
+ */
+export const useGenerateListingPreview = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateListingPreview>>,
+    TError,
+    { token: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateListingPreview>>,
+  TError,
+  { token: string },
+  TContext
+> => {
+  return useMutation(getGenerateListingPreviewMutationOptions(options));
+};
 
 /**
  * @summary List comments for a media asset

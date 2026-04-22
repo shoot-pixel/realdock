@@ -603,6 +603,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PublicGallery"
+        "403":
+          description: Gallery is private
+        "404":
+          description: Not found
+
+  /gallery/{token}/listing-preview:
+    post:
+      operationId: generateListingPreview
+      tags: [galleries]
+      summary: AI-generate a real estate listing preview for the gallery
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Generated listing preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListingPreview"
         "404":
           description: Not found
 
@@ -1295,6 +1318,9 @@ components:
           type: string
         shareToken:
           type: string
+        visibility:
+          type: string
+          enum: [private, link_only, public]
         isPublic:
           type: boolean
         isPasswordProtected:
@@ -1326,6 +1352,7 @@ components:
         - projectId
         - name
         - shareToken
+        - visibility
         - isPublic
         - isPasswordProtected
         - allowDownload
@@ -1341,6 +1368,9 @@ components:
       properties:
         name:
           type: string
+        visibility:
+          type: string
+          enum: [private, link_only, public]
         isPublic:
           type: boolean
         isPasswordProtected:
@@ -1369,6 +1399,9 @@ components:
       properties:
         name:
           type: string
+        visibility:
+          type: string
+          enum: [private, link_only, public]
         isPublic:
           type: boolean
         isPasswordProtected:
@@ -1583,3 +1616,63 @@ components:
         - aiCreditsLimit
         - projectsUsed
         - features
+
+    ListingPreview:
+      type: object
+      properties:
+        propertyName:
+          type: string
+        address:
+          type: string
+        headline:
+          type: string
+        description:
+          type: string
+        highlights:
+          type: array
+          items:
+            type: string
+        suggestedPrice:
+          type: string
+        bedrooms:
+          type: ["integer", "null"]
+        bathrooms:
+          type: ["number", "null"]
+        squareFeet:
+          type: ["integer", "null"]
+        photoUrls:
+          type: array
+          items:
+            type: string
+        platforms:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              tagline:
+                type: string
+            required:
+              - name
+              - tagline
+        generatedAt:
+          type: string
+      required:
+        - propertyName
+        - address
+        - headline
+        - description
+        - highlights
+        - suggestedPrice
+        - photoUrls
+        - platforms
+        - generatedAt
+
+    GenerateListingPreviewParams:
+      type: object
+      properties:
+        token:
+          type: string
+      required:
+        - token

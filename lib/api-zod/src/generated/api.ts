@@ -602,6 +602,7 @@ export const ListGalleriesResponseItem = zod.object({
   projectId: zod.number(),
   name: zod.string(),
   shareToken: zod.string(),
+  visibility: zod.enum(["private", "link_only", "public"]),
   isPublic: zod.boolean(),
   isPasswordProtected: zod.boolean(),
   allowDownload: zod.boolean(),
@@ -626,6 +627,7 @@ export const CreateGalleryParams = zod.object({
 
 export const CreateGalleryBody = zod.object({
   name: zod.string(),
+  visibility: zod.enum(["private", "link_only", "public"]).optional(),
   isPublic: zod.boolean().optional(),
   isPasswordProtected: zod.boolean().optional(),
   password: zod.string().nullish(),
@@ -649,6 +651,7 @@ export const GetGalleryResponse = zod.object({
   projectId: zod.number(),
   name: zod.string(),
   shareToken: zod.string(),
+  visibility: zod.enum(["private", "link_only", "public"]),
   isPublic: zod.boolean(),
   isPasswordProtected: zod.boolean(),
   allowDownload: zod.boolean(),
@@ -672,6 +675,7 @@ export const UpdateGalleryParams = zod.object({
 
 export const UpdateGalleryBody = zod.object({
   name: zod.string().optional(),
+  visibility: zod.enum(["private", "link_only", "public"]).optional(),
   isPublic: zod.boolean().optional(),
   isPasswordProtected: zod.boolean().optional(),
   password: zod.string().nullish(),
@@ -688,6 +692,7 @@ export const UpdateGalleryResponse = zod.object({
   projectId: zod.number(),
   name: zod.string(),
   shareToken: zod.string(),
+  visibility: zod.enum(["private", "link_only", "public"]),
   isPublic: zod.boolean(),
   isPasswordProtected: zod.boolean(),
   allowDownload: zod.boolean(),
@@ -758,6 +763,33 @@ export const GetPublicGalleryResponse = zod.object({
       updatedAt: zod.string(),
     }),
   ),
+});
+
+/**
+ * @summary AI-generate a real estate listing preview for the gallery
+ */
+export const GenerateListingPreviewParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const GenerateListingPreviewResponse = zod.object({
+  propertyName: zod.string(),
+  address: zod.string(),
+  headline: zod.string(),
+  description: zod.string(),
+  highlights: zod.array(zod.string()),
+  suggestedPrice: zod.string(),
+  bedrooms: zod.number().nullish(),
+  bathrooms: zod.number().nullish(),
+  squareFeet: zod.number().nullish(),
+  photoUrls: zod.array(zod.string()),
+  platforms: zod.array(
+    zod.object({
+      name: zod.string(),
+      tagline: zod.string(),
+    }),
+  ),
+  generatedAt: zod.string(),
 });
 
 /**

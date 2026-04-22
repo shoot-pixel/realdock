@@ -4,6 +4,7 @@ import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable,
 import { CreateGalleryBody, CreateGalleryParams, UpdateGalleryBody, UpdateGalleryParams, DeleteGalleryParams, GetGalleryParams, GetPublicGalleryParams, ListGalleriesParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
 import { randomBytes } from "crypto";
+import OpenAI from "openai";
 
 const router: IRouter = Router();
 
@@ -11,13 +12,20 @@ function generateToken(): string {
   return randomBytes(16).toString("hex");
 }
 
-async function getGalleryWithMediaIds(gallery: typeof galleriesTable.$inferSelect) {
-  const gm = await db.select().from(galleryMediaTable).where(eq(galleryMediaTable.galleryId, gallery.id));
+function getOpenAIClient() {
+  const baseURL = process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"];
+  const apiKey = process.env["AI_INTEGRATIONS_OPENAI_API_KEY"];
+  if (!baseURL || !apiKey) return null;
+  return new OpenAI({ baseURL, apiKey });
+}
+
+function galleryRow(gallery: typeof galleriesTable.$inferSelect) {
   return {
     id: gallery.id,
     projectId: gallery.projectId,
     name: gallery.name,
     shareToken: gallery.shareToken,
+    visibility: gallery.visibility ?? "link_only",
     isPublic: gallery.isPublic,
     isPasswordProtected: gallery.isPasswordProtected,
     allowDownload: gallery.allowDownload,
@@ -26,10 +34,17 @@ async function getGalleryWithMediaIds(gallery: typeof galleriesTable.$inferSelec
     expiresAt: gallery.expiresAt,
     viewCount: gallery.viewCount,
     downloadCount: gallery.downloadCount,
-    mediaIds: gm.map(m => m.mediaId),
     clientMessage: gallery.clientMessage,
     brandingLogoUrl: gallery.brandingLogoUrl,
     createdAt: gallery.createdAt.toISOString(),
+  };
+}
+
+async function getGalleryWithMediaIds(gallery: typeof galleriesTable.$inferSelect) {
+  const gm = await db.select().from(galleryMediaTable).where(eq(galleryMediaTable.galleryId, gallery.id));
+  return {
+    ...galleryRow(gallery),
+    mediaIds: gm.map(m => m.mediaId),
   };
 }
 
@@ -60,6 +75,7 @@ router.post("/projects/:projectId/galleries", requireAuth, async (req: Authentic
   const [gallery] = await db.insert(galleriesTable).values({
     projectId: params.data.projectId,
     shareToken: generateToken(),
+    visibility: rest.visibility ?? "link_only",
     isPublic: rest.isPublic ?? true,
     isPasswordProtected: rest.isPasswordProtected ?? false,
     allowDownload: rest.allowDownload ?? true,
@@ -136,33 +152,55 @@ router.delete("/galleries/:id", requireAuth, async (req: AuthenticatedRequest, r
   res.sendStatus(204);
 });
 
+async function fetchPublicGallery(token: string) {
+  const [gallery] = await db.select().from(galleriesTable).where(eq(galleriesTable.shareToken, token));
+  if (!gallery) return { error: "not_found" as const };
+
+  const visibility = gallery.visibility ?? "link_only";
+  if (visibility === "private") return { error: "private" as const };
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, gallery.projectId));
+  if (!project) return { error: "not_found" as const };
+
+  const [photographer] = await db.select().from(usersTable).where(eq(usersTable.id, project.userId));
+
+  const galleryMedia = await db.select().from(galleryMediaTable)
+    .where(eq(galleryMediaTable.galleryId, gallery.id))
+    .orderBy(galleryMediaTable.sortOrder);
+  const mediaIds = galleryMedia.map(gm => gm.mediaId);
+  const media = mediaIds.length > 0
+    ? await db.select().from(mediaAssetsTable).where(inArray(mediaAssetsTable.id, mediaIds))
+    : [];
+
+  return {
+    gallery,
+    project,
+    photographer,
+    media,
+  };
+}
+
 router.get("/gallery/:token", async (req, res): Promise<void> => {
   const params = GetPublicGalleryParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const [gallery] = await db.select().from(galleriesTable).where(eq(galleriesTable.shareToken, params.data.token));
-  if (!gallery) {
+
+  const result = await fetchPublicGallery(params.data.token);
+  if ("error" in result) {
+    if (result.error === "private") {
+      res.status(403).json({ error: "This gallery is private." });
+      return;
+    }
     res.status(404).json({ error: "Gallery not found" });
     return;
   }
 
+  const { gallery, project, photographer, media } = result;
   await db.update(galleriesTable).set({ viewCount: gallery.viewCount + 1 }).where(eq(galleriesTable.id, gallery.id));
 
-  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, gallery.projectId));
-  if (!project) {
-    res.status(404).json({ error: "Project not found" });
-    return;
-  }
-  const [photographer] = await db.select().from(usersTable).where(eq(usersTable.id, project.userId));
-
-  const galleryMedia = await db.select().from(galleryMediaTable).where(eq(galleryMediaTable.galleryId, gallery.id)).orderBy(galleryMediaTable.sortOrder);
-  const mediaIds = galleryMedia.map(gm => gm.mediaId);
-  const media = mediaIds.length > 0
-    ? await db.select().from(mediaAssetsTable).where(inArray(mediaAssetsTable.id, mediaIds))
-    : [];
-
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   res.json({
     id: gallery.id,
     projectName: project.name,
@@ -196,6 +234,98 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
       createdAt: m.createdAt.toISOString(),
       updatedAt: m.updatedAt.toISOString(),
     })),
+  });
+});
+
+router.post("/gallery/:token/listing-preview", async (req, res): Promise<void> => {
+  const params = GetPublicGalleryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const result = await fetchPublicGallery(params.data.token);
+  if ("error" in result) {
+    if (result.error === "private") {
+      res.status(403).json({ error: "This gallery is private." });
+      return;
+    }
+    res.status(404).json({ error: "Gallery not found" });
+    return;
+  }
+
+  const { gallery, project, media } = result;
+  const photoUrls = media.slice(0, 10).map(m => m.thumbnailUrl ?? m.originalUrl);
+  const propertyName = project.name;
+  const address = project.address ?? "Luxury Property";
+
+  const openai = getOpenAIClient();
+
+  let headline = `Stunning ${propertyName} — Luxury Living at Its Finest`;
+  let description = `Welcome to ${propertyName} at ${address}. This exceptional property showcases impeccable craftsmanship and premium finishes throughout. Floor-to-ceiling windows flood the space with natural light, while the open-concept layout creates a seamless flow between living areas. The gourmet kitchen features top-of-the-line appliances and custom cabinetry. The primary suite offers a spa-inspired bath and walk-in closet. Entertain effortlessly on the private terrace with panoramic views. A rare opportunity to own one of the most coveted addresses in the area.`;
+  let highlights = [
+    "Professionally photographed — magazine-quality imagery",
+    "Open-concept living with premium finishes throughout",
+    "Chef's kitchen with top-of-the-line appliances",
+    "Spa-inspired primary suite with walk-in closet",
+    "Private outdoor entertaining areas",
+    "Exceptional natural light throughout",
+  ];
+  let suggestedPrice = "$2,450,000";
+
+  if (openai) {
+    try {
+      const prompt = `You are a luxury real estate copywriter. Generate a compelling property listing for:
+Property Name: ${propertyName}
+Address: ${address}
+Number of Photos: ${media.length}
+
+Return JSON with this exact structure:
+{
+  "headline": "short compelling headline (max 12 words)",
+  "description": "3-4 sentence luxury real estate listing description highlighting the property's best features",
+  "highlights": ["6 bullet point features in luxury real estate style"],
+  "suggestedPrice": "a realistic price in the format $X,XXX,XXX based on a luxury property"
+}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        max_tokens: 600,
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (content) {
+        const parsed = JSON.parse(content);
+        if (parsed.headline) headline = parsed.headline;
+        if (parsed.description) description = parsed.description;
+        if (Array.isArray(parsed.highlights)) highlights = parsed.highlights;
+        if (parsed.suggestedPrice) suggestedPrice = parsed.suggestedPrice;
+      }
+    } catch (err) {
+      // fall through to defaults
+    }
+  }
+
+  res.json({
+    propertyName,
+    address,
+    headline,
+    description,
+    highlights,
+    suggestedPrice,
+    bedrooms: null,
+    bathrooms: null,
+    squareFeet: null,
+    photoUrls,
+    platforms: [
+      { name: "Zillow", tagline: "Find your way home" },
+      { name: "Redfin", tagline: "Real estate, built for you" },
+      { name: "Realtor.com", tagline: "Home of home search" },
+      { name: "Compass", tagline: "Luxury real estate" },
+    ],
+    generatedAt: new Date().toISOString(),
   });
 });
 
