@@ -3,13 +3,34 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: StudioFlow - Real Estate Media Delivery Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: projects
+    description: Project management
+  - name: media
+    description: Media asset management
+  - name: ai-jobs
+    description: AI processing jobs
+  - name: galleries
+    description: Gallery sharing
+  - name: comments
+    description: Asset comments
+  - name: favorites
+    description: Asset favorites
+  - name: clients
+    description: Client management
+  - name: dashboard
+    description: Dashboard summaries
+
 paths:
   /healthz:
     get:
@@ -24,6 +45,795 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # Auth
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+
+  # Dashboard
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary stats
+      responses:
+        "200":
+          description: Summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      responses:
+        "200":
+          description: Recent activity items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /dashboard/storage-usage:
+    get:
+      operationId: getStorageUsage
+      tags: [dashboard]
+      summary: Get storage usage by project
+      responses:
+        "200":
+          description: Storage usage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageUsage"
+
+  # Projects
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List projects
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: search
+          schema:
+            type: string
+          required: false
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectBody"
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get project by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectBody"
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /projects/{id}/stats:
+    get:
+      operationId: getProjectStats
+      tags: [projects]
+      summary: Get project media stats
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectStats"
+
+  # Media
+  /projects/{projectId}/media:
+    get:
+      operationId: listMedia
+      tags: [media]
+      summary: List media assets for a project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: type
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: status
+          schema:
+            type: string
+          required: false
+      responses:
+        "200":
+          description: List of media assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MediaAsset"
+    post:
+      operationId: uploadMedia
+      tags: [media]
+      summary: Upload media asset (mock)
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadMediaBody"
+      responses:
+        "201":
+          description: Media uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAsset"
+
+  /media/{id}:
+    get:
+      operationId: getMedia
+      tags: [media]
+      summary: Get media asset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Media asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAsset"
+    patch:
+      operationId: updateMedia
+      tags: [media]
+      summary: Update media asset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMediaBody"
+      responses:
+        "200":
+          description: Updated media
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAsset"
+    delete:
+      operationId: deleteMedia
+      tags: [media]
+      summary: Delete media asset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /media/{id}/approve:
+    patch:
+      operationId: approveMedia
+      tags: [media]
+      summary: Toggle media approval status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated media
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaAsset"
+
+  # AI Jobs
+  /media/{mediaId}/ai-jobs:
+    get:
+      operationId: listAiJobs
+      tags: [ai-jobs]
+      summary: List AI jobs for a media asset
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: AI jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AiJob"
+    post:
+      operationId: createAiJob
+      tags: [ai-jobs]
+      summary: Create AI job (mock)
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAiJobBody"
+      responses:
+        "201":
+          description: AI job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiJob"
+
+  /ai-jobs/{id}:
+    get:
+      operationId: getAiJob
+      tags: [ai-jobs]
+      summary: Get AI job status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: AI job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiJob"
+
+  /ai-jobs/{id}/cancel:
+    patch:
+      operationId: cancelAiJob
+      tags: [ai-jobs]
+      summary: Cancel AI job
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cancelled job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiJob"
+
+  # Galleries / Share Links
+  /projects/{projectId}/galleries:
+    get:
+      operationId: listGalleries
+      tags: [galleries]
+      summary: List galleries for a project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Galleries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Gallery"
+    post:
+      operationId: createGallery
+      tags: [galleries]
+      summary: Create gallery / share link
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGalleryBody"
+      responses:
+        "201":
+          description: Gallery created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gallery"
+
+  /galleries/{id}:
+    get:
+      operationId: getGallery
+      tags: [galleries]
+      summary: Get gallery
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Gallery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gallery"
+    patch:
+      operationId: updateGallery
+      tags: [galleries]
+      summary: Update gallery settings
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGalleryBody"
+      responses:
+        "200":
+          description: Updated gallery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gallery"
+    delete:
+      operationId: deleteGallery
+      tags: [galleries]
+      summary: Delete gallery
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /gallery/{token}:
+    get:
+      operationId: getPublicGallery
+      tags: [galleries]
+      summary: Get public gallery by share token
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public gallery with assets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicGallery"
+        "404":
+          description: Not found
+
+  # Comments
+  /media/{mediaId}/comments:
+    get:
+      operationId: listComments
+      tags: [comments]
+      summary: List comments for a media asset
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+    post:
+      operationId: createComment
+      tags: [comments]
+      summary: Create comment
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentBody"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
+  /comments/{id}:
+    delete:
+      operationId: deleteComment
+      tags: [comments]
+      summary: Delete comment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # Favorites
+  /media/{mediaId}/favorite:
+    post:
+      operationId: toggleFavorite
+      tags: [favorites]
+      summary: Toggle favorite on a media asset
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToggleFavoriteBody"
+      responses:
+        "200":
+          description: Favorite toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FavoriteStatus"
+
+  /projects/{projectId}/favorites:
+    get:
+      operationId: listFavorites
+      tags: [favorites]
+      summary: List favorited assets for a project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Favorited media assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MediaAsset"
+
+  # Clients
+  /clients:
+    get:
+      operationId: listClients
+      tags: [clients]
+      summary: List clients
+      responses:
+        "200":
+          description: Clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Client"
+    post:
+      operationId: createClient
+      tags: [clients]
+      summary: Create client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClientBody"
+      responses:
+        "201":
+          description: Client created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+
+  /clients/{id}:
+    get:
+      operationId: getClient
+      tags: [clients]
+      summary: Get client
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+    patch:
+      operationId: updateClient
+      tags: [clients]
+      summary: Update client
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClientBody"
+      responses:
+        "200":
+          description: Updated client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+    delete:
+      operationId: deleteClient
+      tags: [clients]
+      summary: Delete client
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # User / Settings
+  /users/me:
+    patch:
+      operationId: updateCurrentUser
+      tags: [users]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/me/subscription:
+    get:
+      operationId: getSubscription
+      tags: [users]
+      summary: Get subscription and usage info
+      responses:
+        "200":
+          description: Subscription info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +844,742 @@ components:
       required:
         - status
 
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        businessName:
+          type: ["string", "null"]
+        plan:
+          type: string
+          enum: [free, pro, studio]
+        createdAt:
+          type: string
+      required:
+        - id
+        - email
+        - name
+        - plan
+        - createdAt
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    RegisterBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+        businessName:
+          type: ["string", "null"]
+      required:
+        - email
+        - password
+        - name
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    UpdateUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        businessName:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalProjects:
+          type: integer
+        activeProjects:
+          type: integer
+        totalMediaAssets:
+          type: integer
+        storageUsedMb:
+          type: number
+        aiJobsThisMonth:
+          type: integer
+        activeGalleries:
+          type: integer
+        totalClients:
+          type: integer
+        pendingDownloads:
+          type: integer
+      required:
+        - totalProjects
+        - activeProjects
+        - totalMediaAssets
+        - storageUsedMb
+        - aiJobsThisMonth
+        - activeGalleries
+        - totalClients
+        - pendingDownloads
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [upload, ai_job, comment, favorite, gallery_view, download]
+        description:
+          type: string
+        projectId:
+          type: ["integer", "null"]
+        projectName:
+          type: ["string", "null"]
+        mediaId:
+          type: ["integer", "null"]
+        thumbnailUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - type
+        - description
+        - createdAt
+
+    StorageUsage:
+      type: object
+      properties:
+        totalUsedMb:
+          type: number
+        limitMb:
+          type: number
+        byProject:
+          type: array
+          items:
+            type: object
+            properties:
+              projectId:
+                type: integer
+              projectName:
+                type: string
+              usedMb:
+                type: number
+            required:
+              - projectId
+              - projectName
+              - usedMb
+      required:
+        - totalUsedMb
+        - limitMb
+        - byProject
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        clientId:
+          type: ["integer", "null"]
+        name:
+          type: string
+        address:
+          type: string
+        propertyType:
+          type: string
+          enum: [residential, commercial, luxury, vacation, land]
+        status:
+          type: string
+          enum: [draft, active, delivered, archived]
+        coverImageUrl:
+          type: ["string", "null"]
+        mediaCount:
+          type: integer
+        shootDate:
+          type: ["string", "null"]
+        deliveryDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - name
+        - address
+        - propertyType
+        - status
+        - mediaCount
+        - createdAt
+        - updatedAt
+
+    CreateProjectBody:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        propertyType:
+          type: string
+          enum: [residential, commercial, luxury, vacation, land]
+        clientId:
+          type: ["integer", "null"]
+        shootDate:
+          type: ["string", "null"]
+        deliveryDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - name
+        - address
+        - propertyType
+
+    UpdateProjectBody:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        propertyType:
+          type: string
+          enum: [residential, commercial, luxury, vacation, land]
+        status:
+          type: string
+          enum: [draft, active, delivered, archived]
+        clientId:
+          type: ["integer", "null"]
+        shootDate:
+          type: ["string", "null"]
+        deliveryDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: ["string", "null"]
+
+    ProjectStats:
+      type: object
+      properties:
+        totalMedia:
+          type: integer
+        photos:
+          type: integer
+        videos:
+          type: integer
+        aiProcessed:
+          type: integer
+        approved:
+          type: integer
+        pending:
+          type: integer
+        totalSizeMb:
+          type: number
+        galleryViews:
+          type: integer
+        downloads:
+          type: integer
+      required:
+        - totalMedia
+        - photos
+        - videos
+        - aiProcessed
+        - approved
+        - pending
+        - totalSizeMb
+        - galleryViews
+        - downloads
+
+    MediaAsset:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        filename:
+          type: string
+        originalUrl:
+          type: string
+        thumbnailUrl:
+          type: ["string", "null"]
+        processedUrl:
+          type: ["string", "null"]
+        mediaType:
+          type: string
+          enum: [photo, video, virtual_tour]
+        mimeType:
+          type: string
+        sizeMb:
+          type: number
+        width:
+          type: ["integer", "null"]
+        height:
+          type: ["integer", "null"]
+        durationSeconds:
+          type: ["number", "null"]
+        status:
+          type: string
+          enum: [uploading, ready, processing, processed, approved, rejected]
+        isApproved:
+          type: boolean
+        isFavorited:
+          type: boolean
+        sortOrder:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - projectId
+        - filename
+        - originalUrl
+        - mediaType
+        - mimeType
+        - sizeMb
+        - status
+        - isApproved
+        - isFavorited
+        - sortOrder
+        - tags
+        - createdAt
+        - updatedAt
+
+    UploadMediaBody:
+      type: object
+      properties:
+        filename:
+          type: string
+        originalUrl:
+          type: string
+        thumbnailUrl:
+          type: ["string", "null"]
+        mediaType:
+          type: string
+          enum: [photo, video, virtual_tour]
+        mimeType:
+          type: string
+        sizeMb:
+          type: number
+        width:
+          type: ["integer", "null"]
+        height:
+          type: ["integer", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - filename
+        - originalUrl
+        - mediaType
+        - mimeType
+        - sizeMb
+
+    UpdateMediaBody:
+      type: object
+      properties:
+        filename:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        sortOrder:
+          type: integer
+        processedUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [uploading, ready, processing, processed, approved, rejected]
+
+    AiJob:
+      type: object
+      properties:
+        id:
+          type: integer
+        mediaId:
+          type: integer
+        jobType:
+          type: string
+          enum: [virtual_staging, furniture_replacement, declutter, sky_replacement, day_to_dusk, hdr_enhancement, object_removal, color_grading]
+        status:
+          type: string
+          enum: [queued, processing, completed, failed, cancelled]
+        progressPercent:
+          type: integer
+        resultUrl:
+          type: ["string", "null"]
+        settings:
+          type: object
+          additionalProperties: true
+        errorMessage:
+          type: ["string", "null"]
+        creditsUsed:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - mediaId
+        - jobType
+        - status
+        - progressPercent
+        - creditsUsed
+        - createdAt
+        - updatedAt
+
+    CreateAiJobBody:
+      type: object
+      properties:
+        jobType:
+          type: string
+          enum: [virtual_staging, furniture_replacement, declutter, sky_replacement, day_to_dusk, hdr_enhancement, object_removal, color_grading]
+        settings:
+          type: object
+          additionalProperties: true
+      required:
+        - jobType
+
+    Gallery:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        name:
+          type: string
+        shareToken:
+          type: string
+        isPublic:
+          type: boolean
+        isPasswordProtected:
+          type: boolean
+        allowDownload:
+          type: boolean
+        allowFavorites:
+          type: boolean
+        allowComments:
+          type: boolean
+        expiresAt:
+          type: ["string", "null"]
+        viewCount:
+          type: integer
+        downloadCount:
+          type: integer
+        mediaIds:
+          type: array
+          items:
+            type: integer
+        clientMessage:
+          type: ["string", "null"]
+        brandingLogoUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - projectId
+        - name
+        - shareToken
+        - isPublic
+        - isPasswordProtected
+        - allowDownload
+        - allowFavorites
+        - allowComments
+        - viewCount
+        - downloadCount
+        - mediaIds
+        - createdAt
+
+    CreateGalleryBody:
+      type: object
+      properties:
+        name:
+          type: string
+        isPublic:
+          type: boolean
+        isPasswordProtected:
+          type: boolean
+        password:
+          type: ["string", "null"]
+        allowDownload:
+          type: boolean
+        allowFavorites:
+          type: boolean
+        allowComments:
+          type: boolean
+        expiresAt:
+          type: ["string", "null"]
+        mediaIds:
+          type: array
+          items:
+            type: integer
+        clientMessage:
+          type: ["string", "null"]
+      required:
+        - name
+
+    UpdateGalleryBody:
+      type: object
+      properties:
+        name:
+          type: string
+        isPublic:
+          type: boolean
+        isPasswordProtected:
+          type: boolean
+        password:
+          type: ["string", "null"]
+        allowDownload:
+          type: boolean
+        allowFavorites:
+          type: boolean
+        allowComments:
+          type: boolean
+        expiresAt:
+          type: ["string", "null"]
+        mediaIds:
+          type: array
+          items:
+            type: integer
+        clientMessage:
+          type: ["string", "null"]
+
+    PublicGallery:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectName:
+          type: string
+        projectAddress:
+          type: string
+        galleryName:
+          type: string
+        allowDownload:
+          type: boolean
+        allowFavorites:
+          type: boolean
+        allowComments:
+          type: boolean
+        clientMessage:
+          type: ["string", "null"]
+        brandingLogoUrl:
+          type: ["string", "null"]
+        photographerName:
+          type: string
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaAsset"
+      required:
+        - id
+        - projectName
+        - projectAddress
+        - galleryName
+        - allowDownload
+        - allowFavorites
+        - allowComments
+        - photographerName
+        - media
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        mediaId:
+          type: integer
+        authorName:
+          type: string
+        authorEmail:
+          type: ["string", "null"]
+        body:
+          type: string
+        isClientComment:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - mediaId
+        - authorName
+        - body
+        - isClientComment
+        - createdAt
+
+    CreateCommentBody:
+      type: object
+      properties:
+        authorName:
+          type: string
+        authorEmail:
+          type: ["string", "null"]
+        body:
+          type: string
+        isClientComment:
+          type: boolean
+      required:
+        - authorName
+        - body
+
+    FavoriteStatus:
+      type: object
+      properties:
+        mediaId:
+          type: integer
+        isFavorited:
+          type: boolean
+      required:
+        - mediaId
+        - isFavorited
+
+    ToggleFavoriteBody:
+      type: object
+      properties:
+        clientName:
+          type: ["string", "null"]
+        galleryToken:
+          type: ["string", "null"]
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        company:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        projectCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - name
+        - email
+        - projectCount
+        - createdAt
+
+    CreateClientBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        company:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - name
+        - email
+
+    UpdateClientBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        company:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    Subscription:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [free, pro, studio]
+        status:
+          type: string
+          enum: [active, cancelled, past_due]
+        storageUsedMb:
+          type: number
+        storageLimitMb:
+          type: number
+        aiCreditsUsed:
+          type: integer
+        aiCreditsLimit:
+          type: integer
+        projectsUsed:
+          type: integer
+        projectsLimit:
+          type: ["integer", "null"]
+        renewalDate:
+          type: ["string", "null"]
+        features:
+          type: array
+          items:
+            type: string
+      required:
+        - plan
+        - status
+        - storageUsedMb
+        - storageLimitMb
+        - aiCreditsUsed
+        - aiCreditsLimit
+        - projectsUsed
+        - features
