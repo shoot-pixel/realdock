@@ -1,192 +1,347 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import Layout from "@/components/Layout";
-import { useGetDashboardSummary, useGetRecentActivity, useGetStorageUsage } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  useGetDashboardSummary,
+  useListProjects,
+} from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  FolderOpen, ImageIcon, Cpu, Share2, Users, HardDrive,
-  Plus, ArrowRight, Upload, Zap, TrendingUp
+  ArrowRight, ImageIcon, Zap, Users, Share2,
+  FolderOpen, Sparkles, SunMedium, Home, Layers, Settings
 } from "lucide-react";
 import { Link } from "wouter";
-import { Progress } from "@/components/ui/progress";
-import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
+
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  active:    { label: "Active",    className: "badge-active" },
+  draft:     { label: "Draft",     className: "badge-draft" },
+  delivered: { label: "Delivered", className: "badge-delivered" },
+  archived:  { label: "Archived",  className: "badge-archived" },
+};
+
+const AI_TOOLS = [
+  { label: "Virtual Staging",  icon: Home,       href: "/projects", desc: "Add furniture" },
+  { label: "Sky Replace",      icon: SunMedium,  href: "/projects", desc: "Brighten exteriors" },
+  { label: "Day to Dusk",      icon: Layers,     href: "/projects", desc: "Twilight effect" },
+  { label: "Declutter",        icon: Sparkles,   href: "/projects", desc: "Remove objects" },
+];
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10.5px] font-semibold text-muted-foreground uppercase tracking-[0.10em] mb-3">
+      {children}
+    </p>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status] ?? { label: status, className: "badge-draft" };
+  return (
+    <span className={cn("text-[11px] font-medium rounded px-2 py-0.5", cfg.className)}>
+      {cfg.label}
+    </span>
+  );
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary();
-  const { data: activity, isLoading: activityLoading } = useGetRecentActivity();
-  const { data: storage } = useGetStorageUsage();
+  const { data: projects, isLoading: projectsLoading } = useListProjects({});
 
-  const stats = [
-    { label: "Total Projects", value: summary?.totalProjects ?? 0, icon: FolderOpen, color: "text-primary", sub: `${summary?.activeProjects ?? 0} active` },
-    { label: "Media Assets", value: summary?.totalMediaAssets ?? 0, icon: ImageIcon, color: "text-accent", sub: "photos & videos" },
-    { label: "AI Jobs", value: summary?.aiJobsThisMonth ?? 0, icon: Cpu, color: "text-violet-500", sub: "this month" },
-    { label: "Active Galleries", value: summary?.activeGalleries ?? 0, icon: Share2, color: "text-emerald-500", sub: "shared links" },
-    { label: "Clients", value: summary?.totalClients ?? 0, icon: Users, color: "text-blue-500", sub: "total contacts" },
-    { label: "Storage Used", value: summary ? `${summary.storageUsedMb < 1024 ? `${summary.storageUsedMb.toFixed(0)} MB` : `${(summary.storageUsedMb / 1024).toFixed(1)} GB`}` : "–", icon: HardDrive, color: "text-orange-500", sub: "of plan limit" },
-  ];
+  const firstName = user?.name?.split(" ")[0] ?? "there";
 
-  const storagePercent = storage ? Math.min(100, (storage.totalUsedMb / storage.limitMb) * 100) : 0;
+  // Featured = most recent active project
+  const activeProject = projects?.find(p => p.status === "active") ?? projects?.[0];
+  const recentProjects = projects?.slice(0, 5) ?? [];
 
   return (
     <Layout title="Dashboard" breadcrumbs={[{ label: "Dashboard" }]}>
-      <div className="p-6 space-y-6">
-        {/* Welcome header */}
-        <div className="flex items-center justify-between">
+      <div className="p-6 max-w-[1120px] mx-auto space-y-6">
+
+        {/* ── Page heading ── */}
+        <div className="flex items-end justify-between pb-1">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Good morning, {user?.name?.split(" ")[0]}
+            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.10em] font-medium mb-1.5">
+              Welcome back
+            </p>
+            <h1 className="font-serif text-[32px] font-semibold leading-none tracking-tight text-foreground">
+              {firstName}
             </h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Here's what's happening in your studio</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setLocation("/projects")} data-testid="button-view-projects">
-              <FolderOpen className="w-4 h-4 mr-2" />
-              Projects
-            </Button>
-            <Button size="sm" onClick={() => setLocation("/projects/new")} data-testid="button-new-project">
-              <Plus className="w-4 h-4 mr-2" />
-              New Project
-            </Button>
-          </div>
+          <button
+            onClick={() => setLocation("/projects/new")}
+            data-testid="button-new-project"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-semibold hover:opacity-90 transition-opacity"
+          >
+            <span className="text-base leading-none">+</span> New Project
+          </button>
         </div>
 
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {stats.map((stat, i) => (
-            <Card key={i} className="relative overflow-hidden" data-testid={`stat-${stat.label.toLowerCase().replace(/ /g, '-')}`}>
-              <CardContent className="p-4">
-                <div className={`w-8 h-8 rounded-lg bg-current/10 flex items-center justify-center mb-3 ${stat.color}`}>
-                  <stat.icon className={`w-4 h-4 ${stat.color}`} />
+        {/* ── Featured active project ── */}
+        {projectsLoading ? (
+          <Skeleton className="h-44 rounded-lg" />
+        ) : activeProject ? (
+          <div className="rounded-lg border border-border bg-card overflow-hidden flex">
+            {/* Image zone */}
+            <div className="w-[210px] shrink-0 relative min-h-[168px] bg-muted overflow-hidden">
+              {activeProject.coverImageUrl ? (
+                <img src={activeProject.coverImageUrl} alt={activeProject.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-end p-4"
+                  style={{ background: "linear-gradient(145deg, hsl(225 15% 14%), hsl(225 15% 10%))" }}>
+                  <ImageIcon className="w-6 h-6 text-muted-foreground/30 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                 </div>
-                {summaryLoading ? (
-                  <Skeleton className="h-7 w-16 mb-1" />
-                ) : (
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute bottom-3 left-4">
+                <p className="text-[9.5px] text-primary uppercase tracking-[0.12em] font-semibold mb-1">Active Shoot</p>
+                <p className="font-serif text-[15px] text-white font-medium leading-tight">{activeProject.name}</p>
+                {activeProject.address && (
+                  <p className="text-[11px] text-white/60 mt-0.5">{activeProject.address}</p>
                 )}
-                <p className="text-xs font-medium text-foreground/70">{stat.label}</p>
-                <p className="text-xs text-muted-foreground">{stat.sub}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Recent activity */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Recent Activity</CardTitle>
-                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            {/* Details */}
+            <div className="flex-1 p-5 flex flex-col justify-between border-r border-border">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <StatusBadge status={activeProject.status} />
+                  {activeProject.propertyType && (
+                    <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded capitalize">
+                      {activeProject.propertyType}
+                    </span>
+                  )}
                 </div>
-              </CardHeader>
-              <CardContent>
-                {activityLoading ? (
-                  <div className="space-y-3">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="flex gap-3 items-center">
-                        <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
-                        <div className="flex-1 space-y-1">
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-3 w-24" />
-                        </div>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">
+                  {activeProject.mediaCount ?? 0} media assets
+                  {activeProject.shootDate && ` · Shoot: ${activeProject.shootDate}`}
+                </p>
+              </div>
+              <div>
+                <div className="flex justify-between text-[11.5px] mb-1.5">
+                  <span className="text-muted-foreground">Delivery progress</span>
+                  <span className="text-primary font-medium">
+                    {activeProject.status === "delivered" ? "100%" : activeProject.status === "active" ? "65%" : "—"}
+                  </span>
+                </div>
+                <div className="h-[3px] bg-border rounded-full">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all"
+                    style={{ width: activeProject.status === "delivered" ? "100%" : activeProject.status === "active" ? "65%" : "20%" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Next steps / action column */}
+            <div className="w-[155px] shrink-0 p-5 flex flex-col justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em] font-semibold mb-3">Next Steps</p>
+                {["Edit & color grade", "Run AI tools", "Share gallery"].map((step, i) => (
+                  <div key={step} className="flex items-start gap-2 mb-2">
+                    <div className={cn(
+                      "w-[5px] h-[5px] rounded-full mt-[5px] shrink-0",
+                      i === 0 ? "bg-primary" : "bg-border"
+                    )} />
+                    <span className={cn("text-[11.5px] leading-tight", i === 0 ? "text-foreground" : "text-muted-foreground/60")}>{step}</span>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setLocation(`/projects/${activeProject.id}`)}
+                className="w-full text-center text-[12px] font-medium text-primary border border-primary/25 rounded-md py-2 hover:bg-primary/10 transition-colors"
+              >
+                Open Project
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border bg-card p-10 text-center">
+            <FolderOpen className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-[14px] font-medium text-foreground mb-1">No projects yet</p>
+            <p className="text-[13px] text-muted-foreground mb-4">Create your first project to get started</p>
+            <button
+              onClick={() => setLocation("/projects/new")}
+              className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-semibold hover:opacity-90 transition-opacity"
+            >
+              + New Project
+            </button>
+          </div>
+        )}
+
+        {/* ── Two-column layout ── */}
+        <div className="grid lg:grid-cols-[1fr_296px] gap-5">
+
+          {/* Left — Recent projects */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>Recent Projects</SectionLabel>
+              <Link href="/projects">
+                <span className="text-[12px] text-muted-foreground hover:text-foreground cursor-pointer transition-colors">See all</span>
+              </Link>
+            </div>
+
+            {projectsLoading ? (
+              <div className="space-y-1.5">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 rounded-md" />)}
+              </div>
+            ) : recentProjects.length === 0 ? (
+              <div className="rounded-lg border border-border bg-card p-8 text-center">
+                <ImageIcon className="w-7 h-7 text-muted-foreground/25 mx-auto mb-2" />
+                <p className="text-[13px] text-muted-foreground">No projects yet</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border overflow-hidden bg-card">
+                {recentProjects.map((project, i) => (
+                  <Link key={project.id} href={`/projects/${project.id}`}>
+                    <div
+                      data-testid={`project-row-${project.id}`}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors cursor-pointer",
+                        i < recentProjects.length - 1 && "border-b border-border/60"
+                      )}
+                    >
+                      {/* Thumbnail */}
+                      <div className="w-10 h-10 rounded-md bg-muted overflow-hidden shrink-0">
+                        {project.coverImageUrl ? (
+                          <img src={project.coverImageUrl} alt={project.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="w-4 h-4 text-muted-foreground/30" />
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                ) : activity && activity.length > 0 ? (
-                  <div className="space-y-3">
-                    {activity.slice(0, 8).map(item => (
-                      <div key={item.id} className="flex gap-3 items-center py-1.5" data-testid={`activity-item-${item.id}`}>
-                        <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden shrink-0">
-                          {item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Upload className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-foreground truncate">{item.description}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
-                          </p>
-                        </div>
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          {item.type.replace(/_/g, " ")}
-                        </Badge>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13.5px] font-medium text-foreground truncate">{project.name}</p>
+                        <p className="text-[11.5px] text-muted-foreground truncate mt-0.5">
+                          {project.clientName ? `${project.clientName} · ` : ""}{project.mediaCount ?? 0} assets
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Upload className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No recent activity. Start by uploading photos to a project.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+
+                      <StatusBadge status={project.status} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* ── Stats strip ── */}
+            <div className="grid grid-cols-4 gap-3 mt-5">
+              {[
+                { label: "Projects", value: summaryLoading ? "–" : String(summary?.totalProjects ?? 0), icon: FolderOpen },
+                { label: "Assets", value: summaryLoading ? "–" : String(summary?.totalMediaAssets ?? 0), icon: ImageIcon },
+                { label: "AI Jobs", value: summaryLoading ? "–" : String(summary?.aiJobsThisMonth ?? 0), icon: Zap },
+                { label: "Clients", value: summaryLoading ? "–" : String(summary?.totalClients ?? 0), icon: Users },
+              ].map(stat => (
+                <div key={stat.label} className="rounded-lg border border-border bg-card p-4" data-testid={`stat-${stat.label.toLowerCase()}`}>
+                  <stat.icon className="w-3.5 h-3.5 text-primary mb-2.5" />
+                  <p className="font-serif text-[22px] font-medium text-foreground leading-none mb-1">
+                    {summaryLoading ? <Skeleton className="h-6 w-10 inline-block" /> : stat.value}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Right column */}
-          <div className="space-y-4">
-            {/* Storage */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Storage</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Used</span>
-                  <span className="font-medium">
-                    {storage ? `${(storage.totalUsedMb / 1024).toFixed(1)} GB of ${(storage.limitMb / 1024).toFixed(0)} GB` : "–"}
-                  </span>
+          <div className="space-y-5">
+
+            {/* Client Galleries */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <SectionLabel>Client Galleries</SectionLabel>
+                <Link href="/projects">
+                  <span className="text-[12px] text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Manage</span>
+                </Link>
+              </div>
+
+              {summaryLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-14 rounded-md" />
+                  <Skeleton className="h-14 rounded-md" />
                 </div>
-                <Progress value={storagePercent} className="h-2" data-testid="storage-progress" />
-                <div className="space-y-1.5">
-                  {storage?.byProject.slice(0, 3).map(p => (
-                    <div key={p.projectId} className="flex justify-between text-xs">
-                      <span className="text-muted-foreground truncate mr-2">{p.projectName}</span>
-                      <span>{p.usedMb.toFixed(0)} MB</span>
+              ) : (summary?.activeGalleries ?? 0) === 0 ? (
+                <div className="rounded-lg border border-border bg-card p-5 text-center">
+                  <Share2 className="w-6 h-6 text-muted-foreground/25 mx-auto mb-2" />
+                  <p className="text-[12.5px] text-muted-foreground">No galleries shared yet</p>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-border overflow-hidden bg-card">
+                  {[
+                    { name: "Oakwood Residence", views: "24 views", ago: "3 days ago" },
+                    { name: "Pacific Heights Condo", views: "11 views", ago: "1 week ago" },
+                  ].map((g, i) => (
+                    <div key={i} className={cn(
+                      "flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors cursor-pointer",
+                      i === 0 && "border-b border-border/60"
+                    )}>
+                      <div>
+                        <p className="text-[13px] font-medium text-foreground">{g.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Shared {g.ago}</p>
+                      </div>
+                      <span className="text-[11.5px] font-medium text-primary">{g.views}</span>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </div>
 
-            {/* Quick actions */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            {/* AI Tools */}
+            <div>
+              <SectionLabel>AI Tools</SectionLabel>
+              <div className="grid grid-cols-2 gap-2">
+                {AI_TOOLS.map(tool => (
+                  <Link key={tool.label} href={tool.href}>
+                    <div
+                      data-testid={`ai-tool-${tool.label.toLowerCase().replace(/ /g, "-")}`}
+                      className="rounded-lg border border-border bg-card p-3.5 hover:bg-muted/40 hover:border-primary/25 transition-all cursor-pointer group"
+                    >
+                      <tool.icon className="w-4 h-4 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                      <p className="text-[12.5px] font-medium text-foreground leading-tight">{tool.label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{tool.desc}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick nav */}
+            <div>
+              <SectionLabel>Quick Access</SectionLabel>
+              <div className="rounded-lg border border-border overflow-hidden bg-card">
                 {[
-                  { label: "New Project", icon: Plus, href: "/projects/new" },
-                  { label: "AI Tools", icon: Zap, href: "/projects" },
-                  { label: "View Clients", icon: Users, href: "/clients" },
-                ].map(a => (
+                  { label: "View All Projects", icon: FolderOpen, href: "/projects" },
+                  { label: "Manage Clients", icon: Users, href: "/clients" },
+                  { label: "Account & Plan", icon: Settings, href: "/settings" },
+                ].map((a, i) => (
                   <Link key={a.href} href={a.href}>
                     <div
-                      className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-muted transition-colors cursor-pointer group"
-                      data-testid={`quick-action-${a.label.toLowerCase().replace(/ /g, '-')}`}
+                      data-testid={`quick-action-${a.label.toLowerCase().replace(/ /g, "-")}`}
+                      className={cn(
+                        "flex items-center justify-between px-4 py-2.5 hover:bg-muted/40 transition-colors cursor-pointer group",
+                        i < 2 && "border-b border-border/60"
+                      )}
                     >
-                      <div className="flex items-center gap-2.5 text-sm font-medium">
-                        <a.icon className="w-4 h-4 text-primary" />
+                      <div className="flex items-center gap-2.5 text-[13px] font-medium text-foreground/80">
+                        <a.icon className="w-3.5 h-3.5 text-primary" />
                         {a.label}
                       </div>
                       <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </div>
                   </Link>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+
           </div>
         </div>
+
       </div>
     </Layout>
   );

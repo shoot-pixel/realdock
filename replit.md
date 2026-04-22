@@ -4,6 +4,18 @@
 
 StudioFlow is a luxury real estate media delivery SaaS for professional photographers and videographers. Built as a pnpm monorepo with React + TypeScript + Vite frontend, Express API backend, and PostgreSQL + Drizzle ORM.
 
+## Design System — Studio Dark
+
+The app uses a custom premium dark theme called "Studio Dark":
+- **Default mode**: Dark (applied in `main.tsx` via `document.documentElement.classList.add('dark')`)
+- **Background**: `hsl(225 14% 8%)` — near-black charcoal
+- **Primary accent**: `hsl(39 52% 61%)` — warm gold (#C9A96E)
+- **Sidebar**: `hsl(225 18% 6%)` — deepest surface
+- **Typography**: Playfair Display (serif) for headings, Inter (sans) for body
+- **Status badges**: Custom CSS classes in `index.css` — `.badge-active`, `.badge-delivered`, `.badge-draft`, `.badge-archived`, `.badge-editing` — use these instead of shadcn Badge variants
+- **Sidebar nav**: Active item has gold left-border (`border-l-2 border-primary`) + `bg-primary/10 text-primary`
+- **Sidebar width**: 200px
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

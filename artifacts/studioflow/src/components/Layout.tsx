@@ -1,17 +1,16 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
+  DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
   LayoutDashboard, FolderOpen, Users, Settings, LogOut, Sun, Moon,
-  Camera, Menu, X, ChevronRight
+  Camera, Menu, X, ChevronRight, Images
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGetStorageUsage } from "@workspace/api-client-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -31,6 +30,12 @@ export default function Layout({ children, title, breadcrumbs }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const { data: storage } = useGetStorageUsage();
+
+  const storagePercent = storage ? Math.min(100, (storage.totalUsedMb / storage.limitMb) * 100) : 0;
+  const storageLabel = storage
+    ? `${storage.totalUsedMb < 1024 ? `${storage.totalUsedMb.toFixed(0)} MB` : `${(storage.totalUsedMb / 1024).toFixed(1)} GB`} of ${(storage.limitMb / 1024).toFixed(0)} GB`
+    : "–";
 
   const toggleDark = () => {
     document.documentElement.classList.toggle("dark");
@@ -44,96 +49,111 @@ export default function Layout({ children, title, breadcrumbs }: LayoutProps) {
 
   const initials = user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() ?? "U";
 
+  const Sidebar = () => (
+    <aside className={cn(
+      "fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar border-r border-sidebar-border transition-transform duration-300 lg:relative lg:translate-x-0",
+      "w-[200px]",
+      sidebarOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
+      {/* Logo */}
+      <div className="px-5 pt-8 pb-7">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="w-7 h-7 rounded flex items-center justify-center bg-primary/15">
+            <Camera className="w-3.5 h-3.5 text-primary" />
+          </div>
+          <span className="font-serif text-[19px] font-semibold text-foreground tracking-tight leading-none">StudioFlow</span>
+        </div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] pl-[38px]">Studio Dashboard</p>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+        {navItems.map(item => {
+          const active = location.startsWith(item.href);
+          return (
+            <Link key={item.href} href={item.href}>
+              <div
+                data-testid={`nav-${item.label.toLowerCase()}`}
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13.5px] font-medium transition-all cursor-pointer border-l-2",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <item.icon className="w-3.5 h-3.5 shrink-0" />
+                {item.label}
+              </div>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Storage */}
+      <div className="px-4 mb-3">
+        <div className="rounded-lg p-3 bg-muted/50 border border-border/60">
+          <div className="flex justify-between items-baseline mb-2">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-[0.08em] font-medium">
+              {user?.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : "Free"} Plan
+            </span>
+            <span className="text-[11px] text-muted-foreground">{Math.round(storagePercent)}%</span>
+          </div>
+          <div className="h-[3px] bg-border rounded-full mb-2">
+            <div
+              className="h-full bg-primary rounded-full transition-all"
+              style={{ width: `${storagePercent}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground">{storageLabel}</p>
+        </div>
+      </div>
+
+      {/* User */}
+      <div className="px-4 pb-6 border-t border-sidebar-border pt-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              data-testid="user-menu-trigger"
+              className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-md hover:bg-sidebar-accent transition-colors text-left"
+            >
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[11px] font-bold shrink-0">
+                {initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-sidebar-accent-foreground truncate">{user?.name}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" className="w-52 mb-2">
+            <DropdownMenuItem onClick={() => setLocation("/settings")}>
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={toggleDark}>
+              {dark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+              {dark ? "Light Mode" : "Dark Mode"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive" data-testid="button-logout">
+              <LogOut className="w-4 h-4 mr-2" />
+              Log Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </aside>
+  );
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Sidebar */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 lg:relative lg:translate-x-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Camera className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="font-serif font-bold text-xl text-sidebar-foreground tracking-tight">StudioFlow</span>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-          {navItems.map(item => {
-            const active = location.startsWith(item.href);
-            return (
-              <Link key={item.href} href={item.href}>
-                <div
-                  data-testid={`nav-${item.label.toLowerCase()}`}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer",
-                    active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <item.icon className="w-4 h-4 shrink-0" />
-                  {item.label}
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Plan badge */}
-        <div className="px-4 pb-3">
-          <div className="px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
-            <p className="text-xs font-semibold text-primary uppercase tracking-wide">{user?.plan ?? "free"} Plan</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{user?.businessName ?? "Personal"}</p>
-          </div>
-        </div>
-
-        {/* User */}
-        <div className="px-4 pb-5 border-t border-sidebar-border pt-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                data-testid="user-menu-trigger"
-                className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors text-left"
-              >
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={user?.avatarUrl ?? undefined} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">{initials}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" className="w-56 mb-2">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setLocation("/settings")}>
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={toggleDark}>
-                {dark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
-                {dark ? "Light Mode" : "Dark Mode"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive" data-testid="button-logout">
-                <LogOut className="w-4 h-4 mr-2" />
-                Log Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -141,41 +161,39 @@ export default function Layout({ children, title, breadcrumbs }: LayoutProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center gap-4 px-6 py-4 border-b border-border bg-background/80 backdrop-blur-sm shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
+        <header className="flex items-center gap-4 px-6 py-3 border-b border-border bg-background/80 backdrop-blur-sm shrink-0">
+          <button
+            className="lg:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
+            {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
 
           <div className="flex-1 min-w-0">
             {breadcrumbs && breadcrumbs.length > 0 && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 {breadcrumbs.map((crumb, i) => (
                   <span key={i} className="flex items-center gap-1.5">
-                    {i > 0 && <ChevronRight className="w-3.5 h-3.5" />}
+                    {i > 0 && <ChevronRight className="w-3 h-3" />}
                     {crumb.href ? (
                       <Link href={crumb.href}>
-                        <span className="hover:text-foreground cursor-pointer transition-colors">{crumb.label}</span>
+                        <span className="hover:text-foreground cursor-pointer transition-colors text-[13px]">{crumb.label}</span>
                       </Link>
                     ) : (
-                      <span className="text-foreground font-medium">{crumb.label}</span>
+                      <span className="text-foreground font-medium text-[13px]">{crumb.label}</span>
                     )}
                   </span>
                 ))}
               </div>
             )}
             {title && !breadcrumbs && (
-              <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+              <h1 className="text-[15px] font-semibold text-foreground">{title}</h1>
             )}
           </div>
 
           <button
             onClick={toggleDark}
-            className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
             data-testid="button-toggle-theme"
           >
             {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}

@@ -16,10 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  active: "bg-primary/15 text-primary",
-  delivered: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-  archived: "bg-muted/50 text-muted-foreground",
+  draft:     "badge-draft",
+  active:    "badge-active",
+  delivered: "badge-delivered",
+  archived:  "badge-archived",
 };
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
@@ -134,9 +134,9 @@ export default function ProjectsPage() {
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Badge className={`absolute top-3 left-3 text-xs font-semibold ${STATUS_COLORS[project.status]}`}>
+                  <span className={`absolute top-3 left-3 text-[11px] font-semibold rounded px-2 py-0.5 ${STATUS_COLORS[project.status]}`}>
                     {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                  </Badge>
+                  </span>
                   <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
                     <Button size="sm" variant="secondary" className="h-7 px-2.5 text-xs" onClick={(e) => { e.stopPropagation(); setLocation(`/projects/${project.id}`); }}>
                       <Eye className="w-3 h-3 mr-1" /> View

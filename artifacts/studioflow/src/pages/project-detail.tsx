@@ -30,10 +30,10 @@ const AI_JOB_TYPES = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  active: "bg-primary/15 text-primary",
-  delivered: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-  archived: "bg-muted/50 text-muted-foreground",
+  draft:     "badge-draft",
+  active:    "badge-active",
+  delivered: "badge-delivered",
+  archived:  "badge-archived",
 };
 
 export default function ProjectDetailPage() {
