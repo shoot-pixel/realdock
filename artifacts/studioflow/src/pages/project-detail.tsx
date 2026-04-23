@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import Layout from "@/components/Layout";
+import ImageViewer from "@/components/ImageViewer";
 import {
   useGetProject, useListMedia, useListGalleries, useCreateGallery,
-  useCreateAiJob, useGetProjectStats, getListGalleriesQueryKey
+  useGetProjectStats, getListGalleriesQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -11,23 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   ImageIcon, Zap, Share2, Plus, ExternalLink, Eye, Heart,
-  Download, Loader2
 } from "lucide-react";
-import { useLocation as useWLocation } from "wouter";
-
-const AI_JOB_TYPES = [
-  { value: "sky_replacement", label: "Sky Replacement", credits: 2 },
-  { value: "virtual_staging", label: "Virtual Staging", credits: 5 },
-  { value: "declutter", label: "Declutter Room", credits: 3 },
-  { value: "day_to_dusk", label: "Day to Dusk", credits: 3 },
-  { value: "object_removal", label: "Object Removal", credits: 2 },
-];
 
 const STATUS_COLORS: Record<string, string> = {
   draft:     "badge-draft",
@@ -43,16 +31,13 @@ export default function ProjectDetailPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [aiDialogOpen, setAiDialogOpen] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState<number | null>(null);
-  const [selectedJobType, setSelectedJobType] = useState("sky_replacement");
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const { data: project, isLoading: projectLoading } = useGetProject(projectId);
   const { data: media, isLoading: mediaLoading } = useListMedia(projectId);
   const { data: galleries } = useListGalleries(projectId);
   const { data: stats } = useGetProjectStats(projectId);
   const createGallery = useCreateGallery();
-  const createAiJob = useCreateAiJob();
 
   const handleCreateGallery = () => {
     createGallery.mutate({
@@ -72,22 +57,6 @@ export default function ProjectDetailPage() {
         queryClient.invalidateQueries({ queryKey: getListGalleriesQueryKey(projectId) });
         toast({ title: "Gallery created", description: `Share token: ${gal.shareToken}` });
         setLocation(`/projects/${projectId}/gallery/${gal.id}`);
-      },
-    });
-  };
-
-  const handleRunAiJob = () => {
-    if (!selectedMedia) {
-      toast({ title: "Select a photo first", variant: "destructive" });
-      return;
-    }
-    createAiJob.mutate({
-      mediaId: selectedMedia,
-      data: { jobType: selectedJobType as "sky_replacement" | "virtual_staging" | "declutter" | "day_to_dusk" | "hdr_enhancement" | "object_removal" | "color_grading" | "furniture_replacement" }
-    }, {
-      onSuccess: () => {
-        setAiDialogOpen(false);
-        toast({ title: "AI job queued", description: "Processing will begin shortly" });
       },
     });
   };
@@ -115,7 +84,7 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const photoMedia = media?.filter(m => m.mediaType === "photo") ?? [];
+  const allMedia = media ?? [];
 
   return (
     <Layout
@@ -124,6 +93,15 @@ export default function ProjectDetailPage() {
         { label: project.name }
       ]}
     >
+      {/* Image viewer — rendered outside the scrollable layout */}
+      {viewerIndex !== null && allMedia.length > 0 && (
+        <ImageViewer
+          media={allMedia}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
+
       <div className="p-6 space-y-6">
         {/* Hero */}
         <div className="relative rounded-xl overflow-hidden h-52 bg-muted">
@@ -145,63 +123,6 @@ export default function ProjectDetailPage() {
                 <p className="text-white/70 text-sm">{project.address}</p>
               </div>
               <div className="flex gap-2">
-                <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="secondary" data-testid="button-ai-tools">
-                      <Zap className="w-4 h-4 mr-1.5" /> AI Tools
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Run AI Enhancement</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-2">
-                      <div>
-                        <Label>Select Photo</Label>
-                        <Select value={selectedMedia?.toString() ?? ""} onValueChange={v => setSelectedMedia(parseInt(v))}>
-                          <SelectTrigger className="mt-1.5" data-testid="select-ai-media">
-                            <SelectValue placeholder="Choose a photo..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {photoMedia.map(m => (
-                              <SelectItem key={m.id} value={m.id.toString()}>{m.filename}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Enhancement Type</Label>
-                        <Select value={selectedJobType} onValueChange={setSelectedJobType}>
-                          <SelectTrigger className="mt-1.5" data-testid="select-ai-job-type">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {AI_JOB_TYPES.map(j => (
-                              <SelectItem key={j.value} value={j.value}>
-                                {j.label} — {j.credits} credits
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {selectedMedia && (
-                        <div className="rounded-lg overflow-hidden bg-muted h-32">
-                          <img
-                            src={photoMedia.find(m => m.id === selectedMedia)?.originalUrl ?? ""}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <DialogFooter>
-                      <Button onClick={handleRunAiJob} disabled={createAiJob.isPending} data-testid="button-run-ai-job">
-                        {createAiJob.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : "Run Enhancement"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-
                 <Button size="sm" onClick={handleCreateGallery} disabled={createGallery.isPending} data-testid="button-create-gallery">
                   <Share2 className="w-4 h-4 mr-1.5" /> Share Gallery
                 </Button>
@@ -246,27 +167,34 @@ export default function ProjectDetailPage() {
                 <p className="text-xs text-muted-foreground/60">Upload photos and videos to get started</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {media?.map(m => (
-                  <div key={m.id} className="group relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer" data-testid={`media-item-${m.id}`}>
-                    <img
-                      src={m.thumbnailUrl ?? m.originalUrl}
-                      alt={m.filename}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="text-white text-center p-2">
-                        <p className="text-xs font-medium truncate max-w-full">{m.filename}</p>
+              <>
+                <p className="text-[11.5px] text-muted-foreground mb-3">Click any image to open it and apply AI enhancements.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {allMedia.map((m, i) => (
+                    <div
+                      key={m.id}
+                      onClick={() => setViewerIndex(i)}
+                      className="group relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer"
+                      data-testid={`media-item-${m.id}`}
+                    >
+                      <img
+                        src={m.thumbnailUrl ?? m.originalUrl}
+                        alt={m.filename}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+                        <Zap className="w-5 h-5 text-primary" />
+                        <p className="text-[11px] text-white font-medium">Open &amp; Edit</p>
                       </div>
+                      {m.status === "approved" && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                          <Heart className="w-3 h-3 text-accent-foreground fill-current" />
+                        </div>
+                      )}
                     </div>
-                    {m.status === "approved" && (
-                      <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Heart className="w-3 h-3 text-accent-foreground fill-current" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
           </TabsContent>
 
