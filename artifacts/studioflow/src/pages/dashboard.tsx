@@ -83,7 +83,8 @@ export default function DashboardPage() {
         {projectsLoading ? (
           <Skeleton className="h-44 rounded-lg" />
         ) : activeProject ? (
-          <div className="rounded-lg border border-border bg-card overflow-hidden flex">
+          <Link href={`/projects/${activeProject.id}`}>
+          <div className="rounded-lg border border-border bg-card overflow-hidden flex cursor-pointer hover:border-primary/30 transition-colors">
             {/* Image zone */}
             <div className="w-[210px] shrink-0 relative min-h-[168px] bg-muted overflow-hidden">
               {activeProject.coverImageUrl ? (
@@ -150,14 +151,12 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-              <button
-                onClick={() => setLocation(`/projects/${activeProject.id}`)}
-                className="w-full text-center text-[12px] font-medium text-primary border border-primary/25 rounded-md py-2 hover:bg-primary/10 transition-colors"
-              >
+              <div className="w-full text-center text-[12px] font-medium text-primary border border-primary/25 rounded-md py-2 hover:bg-primary/10 transition-colors">
                 Open Project
-              </button>
+              </div>
             </div>
           </div>
+          </Link>
         ) : (
           <div className="rounded-lg border border-border bg-card p-10 text-center">
             <FolderOpen className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
