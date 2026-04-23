@@ -327,13 +327,37 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── TRUST STRIP ── */}
-      <section style={{ borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "20px 40px", display: "flex", justifyContent: "center", gap: 48, alignItems: "center", background: "rgba(255,255,255,0.02)" }}>
-        <span style={{ fontSize: 11.5, color: "#5A5C62", letterSpacing: "0.08em", textTransform: "uppercase" }}>Trusted by photographers at</span>
+      {/*
+      <section
+        style={{
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          padding: "20px 40px",
+          display: "flex",
+          justifyContent: "center",
+          gap: 48,
+          alignItems: "center",
+          background: "rgba(255,255,255,0.02)"
+        }}
+      >
+        <span
+          style={{
+            fontSize: 11.5,
+            color: "#5A5C62",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase"
+          }}
+        >
+          Trusted by photographers at
+        </span>
+
         {["Compass", "Sotheby's", "eXp Realty", "Coldwell Banker", "Douglas Elliman"].map(b => (
-          <span key={b} style={{ fontSize: 13, fontWeight: 500, color: "#3E4048" }}>{b}</span>
+          <span key={b} style={{ fontSize: 13, fontWeight: 500, color: "#3E4048" }}>
+            {b}
+          </span>
         ))}
       </section>
+      */}
 
       {/* ── FEATURES ── */}
       <section id="features" style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto" }}>

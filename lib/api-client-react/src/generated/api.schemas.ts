@@ -409,6 +409,9 @@ export interface Gallery {
   clientMessage?: string | null;
   /** @nullable */
   brandingLogoUrl?: string | null;
+  theme: string;
+  /** @nullable */
+  customCss?: string | null;
   createdAt: string;
 }
 
@@ -462,6 +465,9 @@ export interface UpdateGalleryBody {
   mediaIds?: number[];
   /** @nullable */
   clientMessage?: string | null;
+  theme?: string;
+  /** @nullable */
+  customCss?: string | null;
 }
 
 export interface PublicGallery {
@@ -476,6 +482,9 @@ export interface PublicGallery {
   clientMessage?: string | null;
   /** @nullable */
   brandingLogoUrl?: string | null;
+  theme: string;
+  /** @nullable */
+  customCss?: string | null;
   photographerName: string;
   media: MediaAsset[];
 }

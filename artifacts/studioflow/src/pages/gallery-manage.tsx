@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import Layout from "@/components/Layout";
 import { useGetGallery, useListMedia, useUpdateGallery, getGetGalleryQueryKey } from "@workspace/api-client-react";
@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ExternalLink, Copy, Images, Lock, Link2, Globe, Check } from "lucide-react";
+import { ExternalLink, Copy, Images, Lock, Link2, Globe, Check, Palette, Code2 } from "lucide-react";
 
 type Visibility = "private" | "link_only" | "public";
 
@@ -34,6 +35,80 @@ const VISIBILITY_OPTIONS: { value: Visibility; label: string; description: strin
   },
 ];
 
+interface GalleryTheme {
+  id: string;
+  name: string;
+  description: string;
+  bg: string;
+  card: string;
+  text: string;
+  accent: string;
+  border: string;
+}
+
+const GALLERY_THEMES: GalleryTheme[] = [
+  {
+    id: "classic",
+    name: "Classic Light",
+    description: "Clean white, timeless",
+    bg: "#F6F3EE",
+    card: "#FFFFFF",
+    text: "#191C26",
+    accent: "#C9A96E",
+    border: "#E5DDD0",
+  },
+  {
+    id: "studio-dark",
+    name: "Studio Dark",
+    description: "Charcoal, cinematic",
+    bg: "#111316",
+    card: "#181B21",
+    text: "#E6E3DE",
+    accent: "#C9A96E",
+    border: "#1C2029",
+  },
+  {
+    id: "warm-ivory",
+    name: "Warm Ivory",
+    description: "Cream, soft luxury",
+    bg: "#FAF5EC",
+    card: "#FFF8F0",
+    text: "#2A1F0F",
+    accent: "#8B5E3C",
+    border: "#E8D9C0",
+  },
+  {
+    id: "midnight",
+    name: "Midnight",
+    description: "True black, dramatic",
+    bg: "#090909",
+    card: "#111111",
+    text: "#F2F2F2",
+    accent: "#8B9EFF",
+    border: "#202020",
+  },
+  {
+    id: "forest",
+    name: "Forest",
+    description: "Deep green, organic",
+    bg: "#111A14",
+    card: "#172019",
+    text: "#DFF0E2",
+    accent: "#6DB87A",
+    border: "#1E3022",
+  },
+  {
+    id: "slate",
+    name: "Slate",
+    description: "Cool gray, modern",
+    bg: "#141B23",
+    card: "#1A2230",
+    text: "#DEE7F2",
+    accent: "#6FA6D4",
+    border: "#1F2D3E",
+  },
+];
+
 export default function GalleryManagePage() {
   const [, params] = useRoute("/projects/:projectId/gallery/:galleryId");
   const projectId = parseInt(params?.projectId ?? "0");
@@ -46,6 +121,16 @@ export default function GalleryManagePage() {
   const updateGallery = useUpdateGallery();
 
   const currentVisibility = (gallery?.visibility as Visibility | undefined) ?? "link_only";
+  const currentTheme = gallery?.theme ?? "studio-dark";
+
+  const [customCss, setCustomCss] = useState("");
+  const [cssEdited, setCssEdited] = useState(false);
+
+  useEffect(() => {
+    if (gallery?.customCss != null) {
+      setCustomCss(gallery.customCss ?? "");
+    }
+  }, [gallery?.customCss]);
 
   const handleCopyLink = () => {
     const url = `${window.location.origin}/gallery/${gallery?.shareToken}`;
@@ -63,6 +148,35 @@ export default function GalleryManagePage() {
           toast({ title: `Gallery set to ${v === "link_only" ? "link only" : v}` });
         },
         onError: () => toast({ title: "Failed to update", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleThemeChange = (themeId: string) => {
+    if (!gallery) return;
+    updateGallery.mutate(
+      { id: galleryId, data: { theme: themeId } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetGalleryQueryKey(galleryId) });
+          toast({ title: "Gallery theme updated" });
+        },
+        onError: () => toast({ title: "Failed to update theme", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleSaveCustomCss = () => {
+    if (!gallery) return;
+    updateGallery.mutate(
+      { id: galleryId, data: { customCss: customCss || null } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetGalleryQueryKey(galleryId) });
+          setCssEdited(false);
+          toast({ title: "Custom CSS saved" });
+        },
+        onError: () => toast({ title: "Failed to save CSS", variant: "destructive" }),
       }
     );
   };
@@ -179,6 +293,98 @@ export default function GalleryManagePage() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Gallery Theme */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Palette className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-sm">Gallery Theme</CardTitle>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">Choose how the client-facing gallery looks to your clients.</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" data-testid="theme-grid">
+              {GALLERY_THEMES.map(theme => {
+                const isSelected = currentTheme === theme.id;
+                return (
+                  <button
+                    key={theme.id}
+                    onClick={() => handleThemeChange(theme.id)}
+                    data-testid={`theme-option-${theme.id}`}
+                    className={`relative rounded-xl border-2 overflow-hidden text-left transition-all ${
+                      isSelected
+                        ? "border-primary shadow-md"
+                        : "border-border hover:border-muted-foreground/40"
+                    }`}
+                  >
+                    {/* Mini preview */}
+                    <div
+                      className="h-16 flex flex-col p-2 gap-1.5"
+                      style={{ backgroundColor: theme.bg, borderBottom: `1px solid ${theme.border}` }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: theme.accent }} />
+                        <div className="h-1.5 rounded-full w-14 opacity-60" style={{ backgroundColor: theme.text }} />
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 mt-0.5">
+                        {[theme.card, theme.border, theme.accent].map((c, i) => (
+                          <div key={i} className="h-5 rounded-md" style={{ backgroundColor: c, opacity: i === 1 ? 0.5 : 1 }} />
+                        ))}
+                      </div>
+                    </div>
+                    {/* Label */}
+                    <div className="px-3 py-2 bg-card">
+                      <p className="text-xs font-semibold text-foreground truncate">{theme.name}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">{theme.description}</p>
+                    </div>
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow">
+                        <Check className="w-3 h-3 text-primary-foreground" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Custom CSS */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Code2 className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-sm">Custom CSS</CardTitle>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Advanced: write CSS that will be injected into the gallery portal. Applied on top of the selected theme.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              value={customCss}
+              onChange={e => { setCustomCss(e.target.value); setCssEdited(true); }}
+              placeholder={`.gallery-portal {\n  font-family: 'Georgia', serif;\n  letter-spacing: 0.02em;\n}`}
+              className="font-mono text-xs min-h-[140px] resize-y bg-muted/50 border-border"
+              data-testid="textarea-custom-css"
+            />
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground">
+                Target <code className="bg-muted px-1 py-0.5 rounded text-[10px]">.gallery-portal</code> for scoped styles.
+              </p>
+              <Button
+                size="sm"
+                variant={cssEdited ? "default" : "outline"}
+                onClick={handleSaveCustomCss}
+                disabled={!cssEdited || updateGallery.isPending}
+                data-testid="button-save-custom-css"
+              >
+                {updateGallery.isPending ? "Saving..." : "Save CSS"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import {
   useGetPublicGallery,
@@ -26,6 +26,161 @@ const PLATFORM_COLORS: Record<string, { bg: string; text: string; accent: string
   "Compass":      { bg: "bg-black",     text: "text-white", accent: "#000000" },
 };
 
+interface ThemeVars {
+  background: string;
+  foreground: string;
+  card: string;
+  cardForeground: string;
+  primary: string;
+  primaryForeground: string;
+  muted: string;
+  mutedForeground: string;
+  border: string;
+  input: string;
+  ring: string;
+  popover: string;
+  popoverForeground: string;
+  secondary: string;
+  secondaryForeground: string;
+  isDark: boolean;
+}
+
+const THEME_VARS: Record<string, ThemeVars> = {
+  "classic": {
+    background: "36 18% 96%",
+    foreground: "225 18% 12%",
+    card: "0 0% 100%",
+    cardForeground: "225 18% 12%",
+    primary: "39 52% 55%",
+    primaryForeground: "225 18% 10%",
+    muted: "30 14% 92%",
+    mutedForeground: "225 8% 48%",
+    border: "30 14% 88%",
+    input: "30 14% 85%",
+    ring: "39 52% 55%",
+    popover: "0 0% 100%",
+    popoverForeground: "225 18% 12%",
+    secondary: "36 15% 90%",
+    secondaryForeground: "225 14% 25%",
+    isDark: false,
+  },
+  "studio-dark": {
+    background: "225 14% 8%",
+    foreground: "40 8% 89%",
+    card: "225 12% 11%",
+    cardForeground: "40 8% 89%",
+    primary: "39 52% 61%",
+    primaryForeground: "225 14% 8%",
+    muted: "225 10% 14%",
+    mutedForeground: "225 5% 44%",
+    border: "225 10% 15%",
+    input: "225 10% 18%",
+    ring: "39 52% 61%",
+    popover: "225 13% 10%",
+    popoverForeground: "40 8% 89%",
+    secondary: "225 10% 16%",
+    secondaryForeground: "40 6% 82%",
+    isDark: true,
+  },
+  "warm-ivory": {
+    background: "37 35% 95%",
+    foreground: "30 30% 12%",
+    card: "38 30% 99%",
+    cardForeground: "30 30% 12%",
+    primary: "28 50% 44%",
+    primaryForeground: "38 30% 99%",
+    muted: "37 20% 89%",
+    mutedForeground: "30 18% 44%",
+    border: "35 16% 83%",
+    input: "35 16% 80%",
+    ring: "28 50% 44%",
+    popover: "38 30% 99%",
+    popoverForeground: "30 30% 12%",
+    secondary: "37 22% 90%",
+    secondaryForeground: "30 20% 25%",
+    isDark: false,
+  },
+  "midnight": {
+    background: "0 0% 4%",
+    foreground: "0 0% 94%",
+    card: "0 0% 7%",
+    cardForeground: "0 0% 94%",
+    primary: "230 70% 68%",
+    primaryForeground: "0 0% 4%",
+    muted: "0 0% 11%",
+    mutedForeground: "0 0% 50%",
+    border: "0 0% 14%",
+    input: "0 0% 16%",
+    ring: "230 70% 68%",
+    popover: "0 0% 6%",
+    popoverForeground: "0 0% 94%",
+    secondary: "0 0% 12%",
+    secondaryForeground: "0 0% 80%",
+    isDark: true,
+  },
+  "forest": {
+    background: "140 28% 8%",
+    foreground: "120 10% 90%",
+    card: "140 26% 11%",
+    cardForeground: "120 10% 90%",
+    primary: "130 42% 52%",
+    primaryForeground: "140 28% 8%",
+    muted: "140 18% 14%",
+    mutedForeground: "130 8% 50%",
+    border: "140 18% 17%",
+    input: "140 18% 18%",
+    ring: "130 42% 52%",
+    popover: "140 26% 10%",
+    popoverForeground: "120 10% 90%",
+    secondary: "140 18% 15%",
+    secondaryForeground: "120 8% 75%",
+    isDark: true,
+  },
+  "slate": {
+    background: "220 18% 10%",
+    foreground: "215 15% 88%",
+    card: "220 16% 13%",
+    cardForeground: "215 15% 88%",
+    primary: "210 62% 58%",
+    primaryForeground: "220 18% 10%",
+    muted: "220 12% 16%",
+    mutedForeground: "220 8% 48%",
+    border: "220 14% 19%",
+    input: "220 14% 20%",
+    ring: "210 62% 58%",
+    popover: "220 16% 12%",
+    popoverForeground: "215 15% 88%",
+    secondary: "220 12% 17%",
+    secondaryForeground: "215 10% 72%",
+    isDark: true,
+  },
+};
+
+function buildThemeStyles(themeId: string): string {
+  const vars = THEME_VARS[themeId] ?? THEME_VARS["studio-dark"]!;
+  return `
+    html {
+      --background: ${vars.background} !important;
+      --foreground: ${vars.foreground} !important;
+      --card: ${vars.card} !important;
+      --card-foreground: ${vars.cardForeground} !important;
+      --primary: ${vars.primary} !important;
+      --primary-foreground: ${vars.primaryForeground} !important;
+      --muted: ${vars.muted} !important;
+      --muted-foreground: ${vars.mutedForeground} !important;
+      --border: ${vars.border} !important;
+      --input: ${vars.input} !important;
+      --ring: ${vars.ring} !important;
+      --popover: ${vars.popover} !important;
+      --popover-foreground: ${vars.popoverForeground} !important;
+      --secondary: ${vars.secondary} !important;
+      --secondary-foreground: ${vars.secondaryForeground} !important;
+      --accent: ${vars.primary} !important;
+      --accent-foreground: ${vars.primaryForeground} !important;
+    }
+  `;
+}
+
 export default function GalleryPortalPage() {
   const [, params] = useRoute("/gallery/:token");
   const token = params?.token ?? "";
@@ -41,6 +196,7 @@ export default function GalleryPortalPage() {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   const [listingPreviewOpen, setListingPreviewOpen] = useState(false);
   const [activePlatform, setActivePlatform] = useState(0);
+  const [themeApplied, setThemeApplied] = useState(false);
 
   const { data: gallery, isLoading } = useGetPublicGallery(token);
   const toggleFavorite = useToggleFavorite();
@@ -48,6 +204,47 @@ export default function GalleryPortalPage() {
   const generateListing = useGenerateListingPreview();
 
   const listing = generateListing.data;
+
+  useEffect(() => {
+    if (!gallery) return;
+
+    const themeId = gallery.theme ?? "studio-dark";
+    const vars = THEME_VARS[themeId] ?? THEME_VARS["studio-dark"]!;
+
+    if (vars.isDark) {
+      document.documentElement.classList.add("dark");
+      setDark(true);
+    } else {
+      document.documentElement.classList.remove("dark");
+      setDark(false);
+    }
+
+    const styleEl = document.createElement("style");
+    styleEl.id = "gallery-portal-theme";
+    styleEl.textContent = buildThemeStyles(themeId);
+
+    const existingStyle = document.getElementById("gallery-portal-theme");
+    if (existingStyle) existingStyle.remove();
+    document.head.appendChild(styleEl);
+
+    let customStyleEl: HTMLStyleElement | null = null;
+    if (gallery.customCss) {
+      customStyleEl = document.createElement("style");
+      customStyleEl.id = "gallery-portal-custom-css";
+      customStyleEl.textContent = gallery.customCss;
+      const existingCustom = document.getElementById("gallery-portal-custom-css");
+      if (existingCustom) existingCustom.remove();
+      document.head.appendChild(customStyleEl);
+    }
+
+    setThemeApplied(true);
+
+    return () => {
+      document.getElementById("gallery-portal-theme")?.remove();
+      document.getElementById("gallery-portal-custom-css")?.remove();
+      document.documentElement.classList.add("dark");
+    };
+  }, [gallery?.theme, gallery?.customCss]);
 
   const toggleDark = () => {
     document.documentElement.classList.toggle("dark");
@@ -144,7 +341,7 @@ export default function GalleryPortalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background" data-testid="gallery-portal">
+    <div className="min-h-screen bg-background gallery-portal" data-testid="gallery-portal" data-theme={gallery.theme ?? "studio-dark"}>
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border/60">
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
@@ -180,6 +377,7 @@ export default function GalleryPortalPage() {
               onClick={toggleDark}
               className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground"
               data-testid="button-toggle-theme"
+              title={dark ? "Switch to light" : "Switch to dark"}
             >
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
@@ -499,77 +697,53 @@ export default function GalleryPortalPage() {
                       <div className="rounded-2xl border border-border overflow-hidden shadow-sm" data-testid="platform-listing-card">
                         {/* Platform chrome */}
                         <div className={`${colors.bg} ${colors.text} px-4 py-2.5 flex items-center justify-between`}>
-                          <div>
-                            <p className="text-sm font-bold">{platform.name}</p>
-                            <p className="text-xs opacity-75">{platform.tagline}</p>
-                          </div>
-                          <ExternalLink className="w-4 h-4 opacity-60" />
+                          <span className="text-sm font-bold">{platform.name}</span>
+                          <span className="text-xs opacity-75">{platform.tagline}</span>
                         </div>
-
                         {/* Listing content */}
-                        <div className="bg-white dark:bg-zinc-900">
-                          {/* Hero image */}
-                          {listing.photoUrls[0] && (
-                            <div className="aspect-[16/9] overflow-hidden bg-muted relative">
+                        <div className="bg-white p-4">
+                          {listing.photoUrls?.[0] && (
+                            <div className="aspect-[16/9] rounded-xl overflow-hidden mb-3 bg-gray-100">
                               <img src={listing.photoUrls[0]} alt="" className="w-full h-full object-cover" />
-                              <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2.5 py-1 rounded-full font-medium">
-                                {listing.photoUrls.length} photos
-                              </div>
                             </div>
                           )}
-
-                          <div className="p-5">
-                            {/* Price + address */}
-                            <div className="flex items-start justify-between gap-3 mb-3">
-                              <div>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{listing.suggestedPrice}</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{listing.address}</p>
-                              </div>
-                            </div>
-
-                            {/* Stats row */}
-                            <div className="flex gap-4 py-3 border-y border-gray-100 dark:border-zinc-800 mb-4">
-                              <div className="text-center">
-                                <p className="text-base font-bold text-gray-900 dark:text-white">{listing.bedrooms ?? "—"}</p>
-                                <p className="text-xs text-gray-400">beds</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-base font-bold text-gray-900 dark:text-white">{listing.bathrooms ?? "—"}</p>
-                                <p className="text-xs text-gray-400">baths</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-base font-bold text-gray-900 dark:text-white">{listing.squareFeet ? listing.squareFeet.toLocaleString() : "—"}</p>
-                                <p className="text-xs text-gray-400">sqft</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-base font-bold text-gray-900 dark:text-white">{listing.photoUrls.length}</p>
-                                <p className="text-xs text-gray-400">photos</p>
-                              </div>
-                            </div>
-
-                            {/* Description */}
-                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-4">
-                              {listing.description}
-                            </p>
-
-                            {/* Highlights */}
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              {listing.highlights.slice(0, 4).map((h, i) => (
-                                <span key={i} className="text-xs bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 px-2.5 py-1 rounded-full">
-                                  {h.split(" ").slice(0, 4).join(" ")}...
-                                </span>
-                              ))}
-                            </div>
+                          <p className="text-gray-900 font-bold text-lg">{listing.suggestedPrice}</p>
+                          <p className="text-gray-700 font-medium text-sm mt-0.5">{listing.headline}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <MapPin className="w-3 h-3 text-gray-400" />
+                            <p className="text-gray-500 text-xs">{listing.address}</p>
                           </div>
+                          <p className="text-gray-600 text-xs mt-2 leading-relaxed line-clamp-3">{listing.description}</p>
+                          <button
+                            className="mt-3 w-full py-2 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: colors.accent }}
+                          >
+                            View on {platform.name}
+                          </button>
                         </div>
                       </div>
                     );
                   })()}
                 </div>
 
-                <p className="text-xs text-muted-foreground text-center pt-2">
-                  Generated by StudioFlow AI · {new Date(listing.generatedAt).toLocaleDateString()}
-                </p>
+                {/* CTA */}
+                <div className="border border-border rounded-xl p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Ready to list?</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Copy this listing to your preferred real estate platform</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${listing.headline}\n\n${listing.description}\n\n${listing.highlights.map(h => `• ${h}`).join("\n")}`);
+                      toast({ title: "Listing copied to clipboard" });
+                    }}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                    Copy Listing
+                  </Button>
+                </div>
               </div>
             )}
           </div>

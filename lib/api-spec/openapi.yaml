@@ -1345,6 +1345,10 @@ components:
           type: ["string", "null"]
         brandingLogoUrl:
           type: ["string", "null"]
+        theme:
+          type: string
+        customCss:
+          type: ["string", "null"]
         createdAt:
           type: string
       required:
@@ -1361,6 +1365,7 @@ components:
         - viewCount
         - downloadCount
         - mediaIds
+        - theme
         - createdAt
 
     CreateGalleryBody:
@@ -1422,6 +1427,10 @@ components:
             type: integer
         clientMessage:
           type: ["string", "null"]
+        theme:
+          type: string
+        customCss:
+          type: ["string", "null"]
 
     PublicGallery:
       type: object
@@ -1444,6 +1453,10 @@ components:
           type: ["string", "null"]
         brandingLogoUrl:
           type: ["string", "null"]
+        theme:
+          type: string
+        customCss:
+          type: ["string", "null"]
         photographerName:
           type: string
         media:
@@ -1458,6 +1471,7 @@ components:
         - allowDownload
         - allowFavorites
         - allowComments
+        - theme
         - photographerName
         - media
 

@@ -19,6 +19,8 @@ export const galleriesTable = pgTable("galleries", {
   downloadCount: integer("download_count").notNull().default(0),
   clientMessage: text("client_message"),
   brandingLogoUrl: text("branding_logo_url"),
+  theme: text("theme").notNull().default("classic"),
+  customCss: text("custom_css"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

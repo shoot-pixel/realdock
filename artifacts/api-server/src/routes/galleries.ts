@@ -36,6 +36,8 @@ function galleryRow(gallery: typeof galleriesTable.$inferSelect) {
     downloadCount: gallery.downloadCount,
     clientMessage: gallery.clientMessage,
     brandingLogoUrl: gallery.brandingLogoUrl,
+    theme: gallery.theme ?? "classic",
+    customCss: gallery.customCss ?? null,
     createdAt: gallery.createdAt.toISOString(),
   };
 }
@@ -211,6 +213,8 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
     allowComments: gallery.allowComments,
     clientMessage: gallery.clientMessage,
     brandingLogoUrl: gallery.brandingLogoUrl,
+    theme: gallery.theme ?? "classic",
+    customCss: gallery.customCss ?? null,
     photographerName: photographer?.name ?? "StudioFlow Photographer",
     media: media.map(m => ({
       id: m.id,

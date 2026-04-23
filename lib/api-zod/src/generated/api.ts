@@ -614,6 +614,8 @@ export const ListGalleriesResponseItem = zod.object({
   mediaIds: zod.array(zod.number()),
   clientMessage: zod.string().nullish(),
   brandingLogoUrl: zod.string().nullish(),
+  theme: zod.string(),
+  customCss: zod.string().nullish(),
   createdAt: zod.string(),
 });
 export const ListGalleriesResponse = zod.array(ListGalleriesResponseItem);
@@ -663,6 +665,8 @@ export const GetGalleryResponse = zod.object({
   mediaIds: zod.array(zod.number()),
   clientMessage: zod.string().nullish(),
   brandingLogoUrl: zod.string().nullish(),
+  theme: zod.string(),
+  customCss: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -685,6 +689,8 @@ export const UpdateGalleryBody = zod.object({
   expiresAt: zod.string().nullish(),
   mediaIds: zod.array(zod.number()).optional(),
   clientMessage: zod.string().nullish(),
+  theme: zod.string().optional(),
+  customCss: zod.string().nullish(),
 });
 
 export const UpdateGalleryResponse = zod.object({
@@ -704,6 +710,8 @@ export const UpdateGalleryResponse = zod.object({
   mediaIds: zod.array(zod.number()),
   clientMessage: zod.string().nullish(),
   brandingLogoUrl: zod.string().nullish(),
+  theme: zod.string(),
+  customCss: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -731,6 +739,8 @@ export const GetPublicGalleryResponse = zod.object({
   allowComments: zod.boolean(),
   clientMessage: zod.string().nullish(),
   brandingLogoUrl: zod.string().nullish(),
+  theme: zod.string(),
+  customCss: zod.string().nullish(),
   photographerName: zod.string(),
   media: zod.array(
     zod.object({
