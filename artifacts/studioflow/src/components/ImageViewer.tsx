@@ -126,12 +126,13 @@ export default function ImageViewer({ media, initialIndex, onClose }: ImageViewe
   const createAiJob = useCreateAiJob();
 
   // Poll the job while processing
+  const isPolling = jobId !== null && panelState === "processing";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: job } = useGetAiJob(jobId ?? 0, {
-    enabled: jobId !== null && panelState === "processing",
-    refetchInterval: (data) => {
-      if (!data || data.status === "queued" || data.status === "processing") return 2500;
-      return false;
-    },
+    query: {
+      enabled: isPolling,
+      refetchInterval: isPolling ? 2500 : false,
+    } as any,
   });
 
   // Transition to done when job completes

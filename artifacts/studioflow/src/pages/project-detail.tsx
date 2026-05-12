@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import ImageViewer from "@/components/ImageViewer";
+import UploadZone from "@/components/UploadZone";
 import {
   useGetProject, useListMedia, useListGalleries, useCreateGallery,
   useGetProjectStats, getListGalleriesQueryKey
@@ -14,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ImageIcon, Zap, Share2, Plus, ExternalLink, Eye, Heart,
+  ImageIcon, Zap, Share2, Plus, ExternalLink, Eye, Heart, Upload,
 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -32,6 +33,7 @@ export default function ProjectDetailPage() {
   const queryClient = useQueryClient();
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
 
   const { data: project, isLoading: projectLoading } = useGetProject(projectId);
   const { data: media, isLoading: mediaLoading } = useListMedia(projectId);
@@ -123,6 +125,15 @@ export default function ProjectDetailPage() {
                 <p className="text-white/70 text-sm">{project.address}</p>
               </div>
               <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  onClick={() => { setShowUpload(s => !s); }}
+                  data-testid="button-upload-media"
+                >
+                  <Upload className="w-4 h-4 mr-1.5" /> Upload
+                </Button>
                 <Button size="sm" onClick={handleCreateGallery} disabled={createGallery.isPending} data-testid="button-create-gallery">
                   <Share2 className="w-4 h-4 mr-1.5" /> Share Gallery
                 </Button>
@@ -134,8 +145,8 @@ export default function ProjectDetailPage() {
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: "Photos", value: stats?.photos ?? photoMedia.length },
-            { label: "Videos", value: stats?.videos ?? 0 },
+            { label: "Photos", value: stats?.photos ?? allMedia.filter(m => m.mediaType === "photo").length },
+            { label: "Videos", value: stats?.videos ?? allMedia.filter(m => m.mediaType === "video").length },
             { label: "AI Jobs", value: stats?.aiProcessed ?? 0 },
             { label: "Galleries", value: galleries?.length ?? 0 },
           ].map(s => (
@@ -155,20 +166,38 @@ export default function ProjectDetailPage() {
             <TabsTrigger value="galleries" data-testid="tab-galleries">Galleries</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="media" className="mt-4">
+          <TabsContent value="media" className="mt-4 space-y-4">
+            {/* Upload zone — shown when toggled or when no media */}
+            {(showUpload || (!mediaLoading && allMedia.length === 0)) && (
+              <UploadZone
+                projectId={projectId}
+              />
+            )}
+
             {mediaLoading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {[...Array(10)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
               </div>
-            ) : (media?.length ?? 0) === 0 ? (
-              <div className="text-center py-16 border-2 border-dashed border-border rounded-xl">
-                <ImageIcon className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm mb-4">No media uploaded yet</p>
-                <p className="text-xs text-muted-foreground/60">Upload photos and videos to get started</p>
+            ) : allMedia.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <p className="text-sm">Drop your first photos above to get started.</p>
               </div>
             ) : (
               <>
-                <p className="text-[11.5px] text-muted-foreground mb-3">Click any image to open it and apply AI enhancements.</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[11.5px] text-muted-foreground">
+                    {allMedia.length} {allMedia.length === 1 ? "file" : "files"} · Click any image to open and apply AI enhancements.
+                  </p>
+                  {!showUpload && (
+                    <button
+                      onClick={() => setShowUpload(true)}
+                      className="text-[11.5px] text-primary hover:underline"
+                      data-testid="button-show-upload"
+                    >
+                      + Add more
+                    </button>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {allMedia.map((m, i) => (
                     <div

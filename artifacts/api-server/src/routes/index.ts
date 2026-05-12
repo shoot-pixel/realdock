@@ -10,9 +10,11 @@ import favoritesRouter from "./favorites";
 import clientsRouter from "./clients";
 import dashboardRouter from "./dashboard";
 import usersRouter from "./users";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
+router.use(storageRouter);
 router.use(healthRouter);
 router.use(authRouter);
 router.use(projectsRouter);

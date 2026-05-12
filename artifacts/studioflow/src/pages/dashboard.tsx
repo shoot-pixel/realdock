@@ -218,7 +218,7 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[13.5px] font-medium text-foreground truncate">{project.name}</p>
                         <p className="text-[11.5px] text-muted-foreground truncate mt-0.5">
-                          {project.clientName ? `${project.clientName} · ` : ""}{project.mediaCount ?? 0} assets
+                          {project.mediaCount ?? 0} assets
                         </p>
                       </div>
 
