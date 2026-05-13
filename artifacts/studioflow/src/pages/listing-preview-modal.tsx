@@ -373,7 +373,7 @@ export default function ListingPreviewModal({ token, onClose }: Props) {
 
   useEffect(() => {
     mutate({ token });
-  }, [token]);
+  }, [token, mutate]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
