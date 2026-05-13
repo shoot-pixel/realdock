@@ -84,19 +84,19 @@ export default function DashboardPage() {
       <div className="p-6 max-w-[1120px] mx-auto space-y-6">
 
         {/* ── Page heading ── */}
-        <div className="flex items-end justify-between pb-1">
+        <div className="flex items-end justify-between pb-1 gap-3">
           <div>
             <p className="text-[11px] text-muted-foreground uppercase tracking-[0.10em] font-medium mb-1.5">
               Welcome back
             </p>
-            <h1 className="font-serif text-[32px] font-semibold leading-none tracking-tight text-foreground">
+            <h1 className="font-serif text-[28px] sm:text-[32px] font-semibold leading-none tracking-tight text-foreground">
               {firstName}
             </h1>
           </div>
           <button
             onClick={() => setLocation("/projects/new")}
             data-testid="button-new-project"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-semibold hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-semibold hover:opacity-90 transition-opacity shrink-0"
           >
             <span className="text-base leading-none">+</span> New Project
           </button>
@@ -107,9 +107,9 @@ export default function DashboardPage() {
           <Skeleton className="h-44 rounded-lg" />
         ) : activeProject ? (
           <Link href={`/projects/${activeProject.id}`}>
-          <div className="rounded-lg border border-border bg-card overflow-hidden flex cursor-pointer hover:border-primary/30 transition-colors">
+          <div className="rounded-lg border border-border bg-card overflow-hidden flex flex-col sm:flex-row cursor-pointer hover:border-primary/30 transition-colors">
             {/* Image zone */}
-            <div className="w-[210px] shrink-0 relative min-h-[168px] bg-muted overflow-hidden">
+            <div className="w-full h-40 sm:w-[210px] sm:h-auto shrink-0 relative bg-muted overflow-hidden">
               {activeProject.coverImageUrl ? (
                 <img src={activeProject.coverImageUrl} alt={activeProject.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
               ) : (
@@ -129,7 +129,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Details */}
-            <div className="flex-1 p-5 flex flex-col justify-between border-r border-border">
+            <div className="flex-1 p-5 flex flex-col justify-between border-t sm:border-t-0 sm:border-r border-border">
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <StatusBadge status={activeProject.status} />
@@ -161,7 +161,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Next steps / action column */}
-            <div className="w-[155px] shrink-0 p-5 flex flex-col justify-between">
+            <div className="hidden sm:flex sm:w-[155px] shrink-0 p-5 flex-col justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em] font-semibold mb-3">Next Steps</p>
                 {["Edit & color grade", "Run AI tools", "Share gallery"].map((step, i) => (
@@ -253,7 +253,7 @@ export default function DashboardPage() {
             )}
 
             {/* ── Stats strip ── */}
-            <div className="grid grid-cols-4 gap-3 mt-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
               {[
                 { label: "Projects", value: summaryLoading ? "–" : String(summary?.totalProjects ?? 0), icon: FolderOpen },
                 { label: "Assets", value: summaryLoading ? "–" : String(summary?.totalMediaAssets ?? 0), icon: ImageIcon },

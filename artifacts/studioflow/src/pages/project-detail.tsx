@@ -469,7 +469,7 @@ export default function ProjectDetailPage() {
       <Layout title="Project" breadcrumbs={[{ label: "Projects", href: "/projects" }, { label: "Loading..." }]}>
         <div className="p-6 space-y-6">
           <Skeleton className="h-48 rounded-xl" />
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
           </div>
         </div>
@@ -523,7 +523,7 @@ export default function ProjectDetailPage() {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6">
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 {/* Status selector */}
                 <div className="mb-2">
@@ -544,7 +544,7 @@ export default function ProjectDetailPage() {
                 <h1 className="text-2xl font-bold text-white">{project.name}</h1>
                 <p className="text-white/70 text-sm">{project.address}</p>
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex flex-wrap gap-2 shrink-0">
                 <Button
                   size="sm"
                   variant="outline"
@@ -572,7 +572,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             { label: "Photos",    value: stats?.photos    ?? allMedia.filter(m => m.mediaType === "photo").length },
             { label: "Videos",   value: stats?.videos    ?? allMedia.filter(m => m.mediaType === "video").length },
@@ -670,7 +670,7 @@ export default function ProjectDetailPage() {
                         </p>
                         <p className="text-xs font-mono text-primary mt-1">/gallery/{g.shareToken}</p>
                       </div>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex flex-wrap gap-2 items-center justify-end">
                         <Badge variant={g.isPublic ? "default" : "secondary"} className="text-xs">
                           {g.isPublic ? "Live" : "Draft"}
                         </Badge>

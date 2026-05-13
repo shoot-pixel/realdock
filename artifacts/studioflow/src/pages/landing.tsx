@@ -3,8 +3,53 @@ import { useEffect, useRef, useState } from "react";
 import {
   Camera, FolderOpen, Share2, Zap, Eye, Shield, ArrowRight,
   Check, ImageIcon, Home, SunMedium, Layers, Sparkles, Star,
-  ChevronRight, Play, Images, BarChart3, Globe, Lock
+  ChevronRight, Play, Images, BarChart3, Globe, Lock, Menu, X
 } from "lucide-react";
+
+// ── Responsive styles ───────────────────────────────────────────────────────
+
+const LANDING_STYLES = `
+  .landing-header { padding: 0 40px; }
+  .landing-nav-links { display: flex; }
+  .landing-section-pad { padding: 80px 40px; }
+  .landing-section-pad-alt { padding: 80px 40px; }
+  .landing-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+  .landing-grid-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .landing-grid-3col-lg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; }
+  .landing-footer { display: flex; justify-content: space-between; align-items: center; padding: 28px 40px; }
+  .landing-footer-links { display: flex; gap: 24px; }
+  .landing-cta-row { display: flex; gap: 12px; align-items: center; }
+  .landing-hero-h1 { font-size: 50px; }
+  .landing-hero-badges { display: flex; gap: 24px; }
+  .landing-ai-tools-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .landing-mobile-menu-btn { display: none; }
+  .landing-nav-cta { display: flex; }
+  .landing-hero-section { max-width: 1200px; margin: 0 auto; }
+
+  @media (max-width: 768px) {
+    .landing-header { padding: 0 16px; }
+    .landing-nav-links { display: none !important; }
+    .landing-nav-cta { display: none !important; }
+    .landing-mobile-menu-btn { display: flex !important; }
+    .landing-section-pad { padding: 48px 20px; }
+    .landing-section-pad-alt { padding: 48px 20px; }
+    .landing-grid-2col { grid-template-columns: 1fr !important; gap: 36px !important; }
+    .landing-grid-3col { grid-template-columns: 1fr !important; gap: 16px !important; }
+    .landing-grid-3col-lg { grid-template-columns: 1fr !important; gap: 28px !important; }
+    .landing-footer { flex-direction: column !important; gap: 16px !important; text-align: center; padding: 24px 20px !important; }
+    .landing-footer-links { flex-wrap: wrap; justify-content: center; gap: 16px !important; }
+    .landing-cta-row { flex-direction: column; align-items: stretch; }
+    .landing-cta-row a, .landing-cta-row span { text-align: center; justify-content: center; }
+    .landing-hero-h1 { font-size: 32px !important; }
+    .landing-hero-badges { flex-wrap: wrap; gap: 12px !important; }
+    .landing-ai-tools-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+    .landing-mobile-nav { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+  }
+
+  @media (min-width: 769px) {
+    .landing-mobile-nav { display: none !important; }
+  }
+`;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -56,7 +101,7 @@ function AppPreviewMock() {
     <div style={{
       background: "#111316", borderRadius: 10, overflow: "hidden",
       border: "1px solid #222429", boxShadow: "0 32px 80px rgba(0,0,0,0.7)",
-      fontFamily: "Inter, sans-serif",
+      fontFamily: "Inter, sans-serif", maxWidth: "100%",
     }}>
       {/* Mock header */}
       <div style={{ background: "#0C0E13", borderBottom: "1px solid #1A1D24", padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 }}>
@@ -141,7 +186,7 @@ function AIToolsMock() {
     { label: "Day to Dusk", before: "linear-gradient(180deg,#6a9acc 0%,#c9d4de 80%,#b8a090 100%)", after: "linear-gradient(180deg,#0a0e1a 0%,#1a2040 30%,#c9803020 100%)", tag: "Dusk" },
   ];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+    <div className="landing-ai-tools-grid">
       {tools.map((t, i) => (
         <div key={i} style={{ background: "#18191C", borderRadius: 8, overflow: "hidden", border: "1px solid #1E2229" }}>
           <div style={{ display: "flex", height: 90 }}>
@@ -237,130 +282,143 @@ const PLANS = [
 // ── Main component ─────────────────────────────────────────────────────────
 
 export default function Landing() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div style={{ fontFamily: "Inter, sans-serif", background: "#111316", color: "#E6E3DE", overflowX: "hidden" }}>
+      <style>{LANDING_STYLES}</style>
 
       {/* ── NAV ── */}
       <header style={{
         position: "sticky", top: 0, zIndex: 100,
         borderBottom: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(17,19,22,0.85)", backdropFilter: "blur(16px)",
-        padding: "0 40px", display: "flex", alignItems: "center", height: 60,
+        background: "rgba(17,19,22,0.95)", backdropFilter: "blur(16px)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: "auto" }}>
-          <div style={{ width: 26, height: 26, borderRadius: 6, background: "rgba(201,169,110,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Camera size={13} color="#C9A96E" />
+        <div className="landing-header" style={{ display: "flex", alignItems: "center", height: 60 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: "auto" }}>
+            <div style={{ width: 26, height: 26, borderRadius: 6, background: "rgba(201,169,110,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Camera size={13} color="#C9A96E" />
+            </div>
+            <span style={{ fontSize: 18, fontWeight: 600, color: "#E6E3DE" }}>RealDock</span>
           </div>
-          <span style={{ fontSize: 18, fontWeight: 600, color: "#E6E3DE" }}>RealDock</span>
+
+          {/* Desktop nav links */}
+          <nav className="landing-nav-links" style={{ alignItems: "center", gap: 8 }}>
+            <a href="#features" style={{ fontSize: 13, color: "#6A6C72", textDecoration: "none", padding: "6px 12px" }}>Features</a>
+            <a href="#how-it-works" style={{ fontSize: 13, color: "#6A6C72", textDecoration: "none", padding: "6px 12px" }}>How It Works</a>
+            <a href="#pricing" style={{ fontSize: 13, color: "#6A6C72", textDecoration: "none", padding: "6px 12px" }}>Pricing</a>
+            <Link href="/gallery/demo-gallery-001">
+              <span style={{ fontSize: 13, color: "#C9A96E", padding: "6px 12px", cursor: "pointer", textDecoration: "none" }}>Live Demo</span>
+            </Link>
+          </nav>
+
+          {/* Desktop CTA buttons */}
+          <div className="landing-nav-cta" style={{ alignItems: "center", gap: 8, marginLeft: 8 }}>
+            <Link href="/login">
+              <span style={{ fontSize: 13, color: "#A8A6A2", padding: "7px 14px", cursor: "pointer", background: "rgba(255,255,255,0.06)", borderRadius: 6, border: "1px solid rgba(255,255,255,0.08)" }} data-testid="link-login">
+                Log In
+              </span>
+            </Link>
+            <Link href="/register">
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#111316", background: "#C9A96E", padding: "7px 16px", borderRadius: 6, cursor: "pointer" }} data-testid="link-register">
+                Request Beta Access
+              </span>
+            </Link>
+          </div>
+
+          {/* Mobile menu button */}
+          <button
+            className="landing-mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(o => !o)}
+            style={{ alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 6, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer", color: "#A8A6A2" }}
+          >
+            {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
+          </button>
         </div>
-        <nav style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <a href="#features" style={{ fontSize: 13, color: "#6A6C72", textDecoration: "none", padding: "6px 12px" }}>Features</a>
-          <a href="#how-it-works" style={{ fontSize: 13, color: "#6A6C72", textDecoration: "none", padding: "6px 12px" }}>How It Works</a>
-          <a href="#pricing" style={{ fontSize: 13, color: "#6A6C72", textDecoration: "none", padding: "6px 12px" }}>Pricing</a>
-          <Link href="/gallery/demo-gallery-001">
-            <span style={{ fontSize: 13, color: "#C9A96E", padding: "6px 12px", cursor: "pointer", textDecoration: "none" }}>Live Demo</span>
-          </Link>
-          <Link href="/login">
-            <span style={{ fontSize: 13, color: "#A8A6A2", padding: "7px 14px", cursor: "pointer", background: "rgba(255,255,255,0.06)", borderRadius: 6, border: "1px solid rgba(255,255,255,0.08)", marginLeft: 4 }} data-testid="link-login">
-              Log In
-            </span>
-          </Link>
-          <Link href="/register">
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#111316", background: "#C9A96E", padding: "7px 16px", borderRadius: 6, cursor: "pointer", marginLeft: 4 }} data-testid="link-register">
-              Request Beta Access
-            </span>
-          </Link>
-        </nav>
+
+        {/* Mobile nav dropdown */}
+        {mobileMenuOpen && (
+          <div className="landing-mobile-nav">
+            <a href="#features" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: 14, color: "#A8A6A2", textDecoration: "none", padding: "8px 4px" }}>Features</a>
+            <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: 14, color: "#A8A6A2", textDecoration: "none", padding: "8px 4px" }}>How It Works</a>
+            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: 14, color: "#A8A6A2", textDecoration: "none", padding: "8px 4px" }}>Pricing</a>
+            <Link href="/gallery/demo-gallery-001">
+              <span onClick={() => setMobileMenuOpen(false)} style={{ fontSize: 14, color: "#C9A96E", padding: "8px 4px", display: "block", cursor: "pointer" }}>Live Demo</span>
+            </Link>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <Link href="/login">
+                <span style={{ flex: 1, display: "block", textAlign: "center", fontSize: 13, color: "#A8A6A2", padding: "9px 16px", background: "rgba(255,255,255,0.06)", borderRadius: 6, border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer" }} data-testid="link-login">
+                  Log In
+                </span>
+              </Link>
+              <Link href="/register">
+                <span style={{ flex: 1, display: "block", textAlign: "center", fontSize: 13, fontWeight: 600, color: "#111316", background: "#C9A96E", padding: "9px 16px", borderRadius: 6, cursor: "pointer" }} data-testid="link-register">
+                  Beta Access
+                </span>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ── HERO ── */}
-      <section style={{ padding: "80px 40px 60px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
-          <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(201,169,110,0.1)", border: "1px solid rgba(201,169,110,0.25)", borderRadius: 99, padding: "5px 14px", marginBottom: 24 }}>
-              <Zap size={11} color="#C9A96E" />
-              <span style={{ fontSize: 11.5, color: "#C9A96E", fontWeight: 500, letterSpacing: "0.04em" }}>AI-powered real estate media platform</span>
+      <section className="landing-section-pad">
+        <div className="landing-hero-section">
+          <div className="landing-grid-2col" style={{ alignItems: "center" }}>
+            <div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(201,169,110,0.1)", border: "1px solid rgba(201,169,110,0.25)", borderRadius: 99, padding: "5px 14px", marginBottom: 24 }}>
+                <Zap size={11} color="#C9A96E" />
+                <span style={{ fontSize: 11.5, color: "#C9A96E", fontWeight: 500, letterSpacing: "0.04em" }}>AI-powered real estate media platform</span>
+              </div>
+              <h1 className="landing-hero-h1" style={{
+                fontFamily: "'Playfair Display', serif",
+                fontWeight: 600, lineHeight: 1.1,
+                color: "#F0EDE7", marginBottom: 20, letterSpacing: "-0.02em",
+              }}>
+                The Command Center for Real Estate Media
+              </h1>
+              <p style={{ fontSize: 16, color: "#7A7C84", lineHeight: 1.7, marginBottom: 32, maxWidth: 440 }}>
+                Manage shoots, automate editing with AI, and deliver breathtaking property galleries that win clients and close listings.
+              </p>
+              <div className="landing-cta-row" style={{ gap: 12 }}>
+                <Link href="/register">
+                  <span data-testid="button-cta" style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    background: "#C9A96E", color: "#111316", fontWeight: 600,
+                    padding: "12px 24px", borderRadius: 7, fontSize: 14, cursor: "pointer",
+                  }}>
+                    Request Beta Access <ArrowRight size={15} />
+                  </span>
+                </Link>
+                <Link href="/gallery/demo-gallery-001">
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    color: "#A8A6A2", fontSize: 14, cursor: "pointer",
+                    padding: "12px 20px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.1)",
+                  }}>
+                    <Play size={13} /> View Live Gallery
+                  </span>
+                </Link>
+              </div>
+              <div className="landing-hero-badges" style={{ marginTop: 28 }}>
+                {["Invite-only beta", "Invite code required", "Limited spots available"].map(t => (
+                  <div key={t} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#5A5C62" }}>
+                    <Lock size={12} color="#C9A96E" />
+                    {t}
+                  </div>
+                ))}
+              </div>
             </div>
-            <h1 style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: 50, fontWeight: 600, lineHeight: 1.1,
-              color: "#F0EDE7", marginBottom: 20, letterSpacing: "-0.02em",
-            }}>
-              The Command Center for Real Estate Media
-            </h1>
-            <p style={{ fontSize: 16, color: "#7A7C84", lineHeight: 1.7, marginBottom: 32, maxWidth: 440 }}>
-              Manage shoots, automate editing with AI, and deliver breathtaking property galleries that win clients and close listings.
-            </p>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <Link href="/register">
-                <span data-testid="button-cta" style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  background: "#C9A96E", color: "#111316", fontWeight: 600,
-                  padding: "12px 24px", borderRadius: 7, fontSize: 14, cursor: "pointer",
-                }}>
-                  Request Beta Access <ArrowRight size={15} />
-                </span>
-              </Link>
-              <Link href="/gallery/demo-gallery-001">
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  color: "#A8A6A2", fontSize: 14, cursor: "pointer",
-                  padding: "12px 20px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.1)",
-                }}>
-                  <Play size={13} /> View Live Gallery
-                </span>
-              </Link>
+            <div style={{ position: "relative" }}>
+              <div style={{ position: "absolute", inset: -30, background: "radial-gradient(ellipse at center, rgba(201,169,110,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+              <AppPreviewMock />
             </div>
-            <div style={{ marginTop: 28, display: "flex", gap: 24 }}>
-              {["Invite-only beta", "Invite code required", "Limited spots available"].map(t => (
-                <div key={t} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#5A5C62" }}>
-                  <Lock size={12} color="#C9A96E" />
-                  {t}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ position: "relative" }}>
-            <div style={{ position: "absolute", inset: -30, background: "radial-gradient(ellipse at center, rgba(201,169,110,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-            <AppPreviewMock />
           </div>
         </div>
       </section>
 
-      {/*
-      <section
-        style={{
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          padding: "20px 40px",
-          display: "flex",
-          justifyContent: "center",
-          gap: 48,
-          alignItems: "center",
-          background: "rgba(255,255,255,0.02)"
-        }}
-      >
-        <span
-          style={{
-            fontSize: 11.5,
-            color: "#5A5C62",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase"
-          }}
-        >
-          Trusted by photographers at
-        </span>
-
-        {["Compass", "Sotheby's", "eXp Realty", "Coldwell Banker", "Douglas Elliman"].map(b => (
-          <span key={b} style={{ fontSize: 13, fontWeight: 500, color: "#3E4048" }}>
-            {b}
-          </span>
-        ))}
-      </section>
-      */}
-
       {/* ── FEATURES ── */}
-      <section id="features" style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto" }}>
+      <section id="features" className="landing-section-pad" style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Reveal>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
             <SectionTag>Everything You Need</SectionTag>
@@ -374,7 +432,7 @@ export default function Landing() {
           </div>
         </Reveal>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+        <div className="landing-grid-3col">
           {[
             {
               icon: FolderOpen, title: "Property Project Management",
@@ -425,7 +483,7 @@ export default function Landing() {
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section id="how-it-works" style={{ padding: "80px 40px", background: "#0D0F14", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <section id="how-it-works" className="landing-section-pad-alt" style={{ background: "#0D0F14", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <Reveal>
             <div style={{ textAlign: "center", marginBottom: 56 }}>
@@ -437,7 +495,7 @@ export default function Landing() {
             </div>
           </Reveal>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32, position: "relative" }}>
+          <div className="landing-grid-3col-lg" style={{ position: "relative" }}>
             {[
               {
                 step: "01", icon: Camera, title: "Create Your Project",
@@ -468,8 +526,8 @@ export default function Landing() {
       </section>
 
       {/* ── FEATURE SPOTLIGHT 1: AI Tools ── */}
-      <section style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
+      <section className="landing-section-pad" style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div className="landing-grid-2col" style={{ alignItems: "center" }}>
           <Reveal>
             <div>
               <SectionTag>AI Post-Processing</SectionTag>
@@ -506,51 +564,53 @@ export default function Landing() {
       </section>
 
       {/* ── FEATURE SPOTLIGHT 2: Gallery Portal ── */}
-      <section style={{ padding: "80px 40px", background: "#0D0F14", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
-          <Reveal delay={100}>
-            <GalleryMock />
-          </Reveal>
-          <Reveal>
-            <div>
-              <SectionTag>Client Delivery</SectionTag>
-              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 34, fontWeight: 600, color: "#F0EDE7", letterSpacing: "-0.01em", marginBottom: 16, lineHeight: 1.2 }}>
-                Galleries That Impress Even the Most Discerning Clients
-              </h2>
-              <p style={{ fontSize: 14.5, color: "#6A6C72", lineHeight: 1.75, marginBottom: 24 }}>
-                Your clients get a beautiful, branded portal — not a messy Dropbox link. They can review selects, mark favorites, leave comments, and download finals. All from any device.
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
-                {[
-                  { icon: Lock, label: "Visibility controls — private, link-only, or public" },
-                  { icon: Eye, label: "See when clients view and interact with your gallery" },
-                  { icon: Globe, label: "AI Listing Preview — generate luxury listing copy instantly" },
-                  { icon: Images, label: "Full-resolution download with optional watermarking" },
-                ].map(f => (
-                  <div key={f.label} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                    <div style={{ marginTop: 2, flexShrink: 0 }}>
-                      <f.icon size={13} color="#C9A96E" />
+      <section className="landing-section-pad-alt" style={{ background: "#0D0F14", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div className="landing-grid-2col" style={{ alignItems: "center" }}>
+            <Reveal delay={100}>
+              <GalleryMock />
+            </Reveal>
+            <Reveal>
+              <div>
+                <SectionTag>Client Delivery</SectionTag>
+                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 34, fontWeight: 600, color: "#F0EDE7", letterSpacing: "-0.01em", marginBottom: 16, lineHeight: 1.2 }}>
+                  Galleries That Impress Even the Most Discerning Clients
+                </h2>
+                <p style={{ fontSize: 14.5, color: "#6A6C72", lineHeight: 1.75, marginBottom: 24 }}>
+                  Your clients get a beautiful, branded portal — not a messy Dropbox link. They can review selects, mark favorites, leave comments, and download finals. All from any device.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
+                  {[
+                    { icon: Lock, label: "Visibility controls — private, link-only, or public" },
+                    { icon: Eye, label: "See when clients view and interact with your gallery" },
+                    { icon: Globe, label: "AI Listing Preview — generate luxury listing copy instantly" },
+                    { icon: Images, label: "Full-resolution download with optional watermarking" },
+                  ].map(f => (
+                    <div key={f.label} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ marginTop: 2, flexShrink: 0 }}>
+                        <f.icon size={13} color="#C9A96E" />
+                      </div>
+                      <span style={{ fontSize: 13.5, color: "#7A7C84", lineHeight: 1.5 }}>{f.label}</span>
                     </div>
-                    <span style={{ fontSize: 13.5, color: "#7A7C84", lineHeight: 1.5 }}>{f.label}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <Link href="/gallery/demo-gallery-001">
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 8,
+                    color: "#C9A96E", fontSize: 13.5, fontWeight: 500, cursor: "pointer",
+                    border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, padding: "9px 16px",
+                  }}>
+                    View Live Gallery Demo <ChevronRight size={14} />
+                  </span>
+                </Link>
               </div>
-              <Link href="/gallery/demo-gallery-001">
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  color: "#C9A96E", fontSize: 13.5, fontWeight: 500, cursor: "pointer",
-                  border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, padding: "9px 16px",
-                }}>
-                  View Live Gallery Demo <ChevronRight size={14} />
-                </span>
-              </Link>
-            </div>
-          </Reveal>
+            </Reveal>
+          </div>
         </div>
       </section>
 
       {/* ── PRICING ── */}
-      <section id="pricing" style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto" }}>
+      <section id="pricing" className="landing-section-pad" style={{ maxWidth: 1200, margin: "0 auto" }}>
         <Reveal>
           <div style={{ textAlign: "center", marginBottom: 52 }}>
             <SectionTag>Pricing</SectionTag>
@@ -562,7 +622,7 @@ export default function Landing() {
           </div>
         </Reveal>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+        <div className="landing-grid-3col">
           {PLANS.map((plan, i) => (
             <Reveal key={plan.name} delay={i * 70}>
               <div style={{
@@ -615,7 +675,7 @@ export default function Landing() {
       </section>
 
       {/* ── TESTIMONIAL ── */}
-      <section style={{ padding: "60px 40px", background: "#0D0F14", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <section className="landing-section-pad-alt" style={{ background: "#0D0F14", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center" }}>
           <Reveal>
             <div style={{ display: "flex", justifyContent: "center", gap: 3, marginBottom: 20 }}>
@@ -636,7 +696,7 @@ export default function Landing() {
       </section>
 
       {/* ── FINAL CTA ── */}
-      <section style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto", textAlign: "center" }}>
+      <section className="landing-section-pad" style={{ maxWidth: 1200, margin: "0 auto", textAlign: "center" }}>
         <Reveal>
           <div style={{ maxWidth: 600, margin: "0 auto" }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(201,169,110,0.1)", border: "1px solid rgba(201,169,110,0.25)", borderRadius: 99, padding: "5px 14px", marginBottom: 20 }}>
@@ -649,10 +709,10 @@ export default function Landing() {
             <p style={{ fontSize: 15, color: "#6A6C72", marginBottom: 32, lineHeight: 1.6 }}>
               RealDock is invite-only during beta. Join photographers and videographers who are already delivering faster, looking more professional, and growing their studio.
             </p>
-            <div style={{ display: "flex", justifyContent: "center", gap: 12 }}>
+            <div className="landing-cta-row" style={{ justifyContent: "center", gap: 12 }}>
               <Link href="/register">
                 <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
                   background: "#C9A96E", color: "#111316", fontWeight: 600,
                   padding: "13px 28px", borderRadius: 7, fontSize: 14.5, cursor: "pointer",
                 }}>
@@ -661,7 +721,7 @@ export default function Landing() {
               </Link>
               <Link href="/login">
                 <span style={{
-                  display: "inline-flex", alignItems: "center",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
                   color: "#6A6C72", fontSize: 14.5, cursor: "pointer",
                   padding: "13px 24px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)",
                 }}>
@@ -675,12 +735,12 @@ export default function Landing() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "28px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <footer className="landing-footer" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Camera size={13} color="#C9A96E" />
           <span style={{ fontSize: 15, fontWeight: 600, color: "#4A4C52" }}>RealDock</span>
         </div>
-        <div style={{ display: "flex", gap: 24 }}>
+        <div className="landing-footer-links">
           {["Features", "Pricing", "Log In", "Beta Access"].map(l => (
             <span key={l} style={{ fontSize: 12.5, color: "#3E4048", cursor: "pointer" }}>{l}</span>
           ))}

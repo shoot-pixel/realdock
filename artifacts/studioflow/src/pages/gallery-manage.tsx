@@ -351,14 +351,14 @@ export default function GalleryManagePage() {
               <span className="text-sm text-muted-foreground">{gallery.viewCount} views · {gallery.downloadCount} downloads</span>
             </div>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex flex-wrap gap-2 shrink-0">
             {currentVisibility !== "private" && (
               <>
                 <Button variant="outline" size="sm" onClick={handleCopyLink} data-testid="button-copy-gallery-link">
-                  <Copy className="w-4 h-4 mr-2" /> Copy Link
+                  <Copy className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Copy Link</span>
                 </Button>
                 <Button size="sm" onClick={() => window.open(`/gallery/${gallery.shareToken}`, "_blank")} data-testid="button-open-gallery">
-                  <ExternalLink className="w-4 h-4 mr-2" /> Open Gallery
+                  <ExternalLink className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Open Gallery</span>
                 </Button>
               </>
             )}
@@ -439,7 +439,7 @@ export default function GalleryManagePage() {
             <CardTitle className="text-sm">Client Access</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {VISIBILITY_OPTIONS.map(opt => {
                 const Icon = opt.icon;
                 const isSelected = currentVisibility === opt.value;
