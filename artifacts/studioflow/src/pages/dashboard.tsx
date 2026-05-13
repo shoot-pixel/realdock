@@ -18,6 +18,8 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   draft:     { label: "Draft",     className: "badge-draft" },
   delivered: { label: "Delivered", className: "badge-delivered" },
   archived:  { label: "Archived",  className: "badge-archived" },
+  completed: { label: "Completed", className: "badge-completed" },
+  paid:      { label: "Paid",      className: "badge-paid" },
 };
 
 const AI_TOOLS = [

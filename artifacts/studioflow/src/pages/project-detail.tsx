@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import ImageViewer from "@/components/ImageViewer";
@@ -6,7 +6,7 @@ import UploadZone from "@/components/UploadZone";
 import {
   useGetProject, useListMedia, useListGalleries, useCreateGallery,
   useGetProjectStats, getListGalleriesQueryKey, getListMediaQueryKey,
-  useDeleteMedia, useUpdateMedia,
+  useDeleteMedia, useUpdateMedia, useUpdateProject, useReorderMedia, useCreateInvoice,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -14,20 +14,36 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   ImageIcon, Zap, Share2, Plus, ExternalLink, Eye as EyeIcon, Upload,
-  Trash2, RefreshCw, Loader2,
+  Trash2, RefreshCw, Loader2, Star, GripVertical, Receipt, X,
 } from "lucide-react";
+
+const STATUS_OPTIONS = [
+  { value: "draft",     label: "Draft" },
+  { value: "active",    label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "delivered", label: "Delivered" },
+  { value: "paid",      label: "Paid" },
+  { value: "archived",  label: "Archived" },
+];
 
 const STATUS_COLORS: Record<string, string> = {
   draft:     "badge-draft",
   active:    "badge-active",
   delivered: "badge-delivered",
   archived:  "badge-archived",
+  completed: "badge-completed",
+  paid:      "badge-paid",
 };
 
-// ── Upload helper (same presigned-URL flow as UploadZone) ────────────────────
+// ── Upload helper ─────────────────────────────────────────────────────────────
 
 async function uploadReplacementFile(file: File): Promise<{ originalUrl: string; thumbnailUrl: string | null; filename: string }> {
   const token = localStorage.getItem("sf_token");
@@ -48,8 +64,7 @@ async function uploadReplacementFile(file: File): Promise<{ originalUrl: string;
   });
   if (!putRes.ok) throw new Error("Upload failed");
 
-  const servingUrl = `/api/storage${objectPath}`;
-  return { originalUrl: servingUrl, thumbnailUrl: servingUrl, filename: file.name };
+  return { originalUrl: `/api/storage${objectPath}`, thumbnailUrl: `/api/storage${objectPath}`, filename: file.name };
 }
 
 // ── Media card ────────────────────────────────────────────────────────────────
@@ -59,9 +74,16 @@ interface MediaCardProps {
   index: number;
   onOpen: (i: number) => void;
   projectId: number;
+  coverImageUrl?: string | null;
+  onSetCover: (url: string) => void;
+  onDragStart: (index: number) => void;
+  onDragOver: (index: number) => void;
+  onDragEnd: () => void;
+  isDragging: boolean;
+  isOver: boolean;
 }
 
-function MediaCard({ m, index, onOpen, projectId }: MediaCardProps) {
+function MediaCard({ m, index, onOpen, projectId, coverImageUrl, onSetCover, onDragStart, onDragOver, onDragEnd, isDragging, isOver }: MediaCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +91,8 @@ function MediaCard({ m, index, onOpen, projectId }: MediaCardProps) {
   const updateMedia = useUpdateMedia();
   const [replacing, setReplacing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const isCover = !!(coverImageUrl && (coverImageUrl === m.originalUrl || coverImageUrl === m.thumbnailUrl));
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: getListMediaQueryKey(projectId) });
 
@@ -94,17 +118,22 @@ function MediaCard({ m, index, onOpen, projectId }: MediaCardProps) {
     } finally {
       setReplacing(false);
     }
-  }, [m.id, updateMedia, invalidate, toast]);
+  }, [m.id]);
 
   const busy = deleteMedia.isPending || replacing;
 
   return (
     <div
-      className="group relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer"
+      className={`group relative aspect-square bg-muted rounded-lg overflow-hidden transition-all ${
+        isDragging ? "opacity-40 scale-95 cursor-grabbing" : "cursor-grab"
+      } ${isOver ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
       data-testid={`media-item-${m.id}`}
+      draggable
+      onDragStart={() => onDragStart(index)}
+      onDragOver={e => { e.preventDefault(); onDragOver(index); }}
+      onDragEnd={onDragEnd}
       onMouseLeave={() => setConfirmDelete(false)}
     >
-      {/* Hidden file input for replace */}
       <input
         ref={fileInputRef}
         type="file"
@@ -118,35 +147,54 @@ function MediaCard({ m, index, onOpen, projectId }: MediaCardProps) {
         alt={m.filename}
         onClick={() => !busy && onOpen(index)}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        loading="lazy"
       />
 
-      {/* Open/Edit overlay */}
+      {/* Drag handle */}
+      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+        <div className="w-6 h-6 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center">
+          <GripVertical className="w-3 h-3 text-white/70" />
+        </div>
+      </div>
+
+      {/* Cover badge */}
+      {isCover && (
+        <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+          <span className="text-[9.5px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded flex items-center gap-0.5">
+            <Star className="w-2.5 h-2.5" /> Cover
+          </span>
+        </div>
+      )}
+
+      {/* Hover overlay */}
       <div
-        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 pointer-events-none"
+        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5"
         style={{ pointerEvents: "none" }}
       >
         <Zap className="w-5 h-5 text-primary" />
         <p className="text-[11px] text-white font-medium">Open &amp; Edit</p>
       </div>
 
-      {/* Action buttons — top row */}
+      {/* Action buttons */}
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        {/* Replace */}
+        {!isCover && (
+          <button
+            onClick={e => { e.stopPropagation(); onSetCover(m.originalUrl); }}
+            title="Set as cover image"
+            className="w-7 h-7 rounded-md bg-black/60 backdrop-blur-sm border border-white/10 text-white hover:bg-primary/80 hover:text-primary-foreground flex items-center justify-center transition-colors"
+          >
+            <Star className="w-3.5 h-3.5" />
+          </button>
+        )}
         <button
           onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
           disabled={busy}
           data-testid={`button-replace-${m.id}`}
           title="Replace with new file"
-          className="w-7 h-7 rounded-md bg-black/60 backdrop-blur-sm border border-white/10 text-white hover:bg-white/20 hover:text-white flex items-center justify-center transition-colors disabled:opacity-50"
+          className="w-7 h-7 rounded-md bg-black/60 backdrop-blur-sm border border-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-colors disabled:opacity-50"
         >
-          {replacing ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <RefreshCw className="w-3.5 h-3.5" />
-          )}
+          {replacing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
         </button>
-
-        {/* Delete / Confirm */}
         <button
           onClick={handleDelete}
           disabled={busy}
@@ -154,20 +202,158 @@ function MediaCard({ m, index, onOpen, projectId }: MediaCardProps) {
           title={confirmDelete ? "Click again to confirm delete" : "Delete photo"}
           className={`h-7 rounded-md backdrop-blur-sm border text-white flex items-center justify-center gap-1 transition-all disabled:opacity-50 px-1.5 ${
             confirmDelete
-              ? "bg-destructive border-destructive/80 text-white text-[10px] font-medium min-w-[56px]"
+              ? "bg-destructive border-destructive/80 text-[10px] font-medium min-w-[56px]"
               : "w-7 bg-black/60 border-white/10 hover:bg-destructive hover:border-destructive"
           }`}
         >
-          {deleteMedia.isPending ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : confirmDelete ? (
-            <>Confirm</>
-          ) : (
-            <Trash2 className="w-3.5 h-3.5" />
-          )}
+          {deleteMedia.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : confirmDelete ? <>Confirm</> : <Trash2 className="w-3.5 h-3.5" />}
         </button>
       </div>
     </div>
+  );
+}
+
+// ── Invoice dialog ─────────────────────────────────────────────────────────────
+
+interface LineItem { description: string; amount: string }
+
+interface InvoiceDialogProps {
+  open: boolean;
+  onClose: () => void;
+  projectId: number;
+  projectName: string;
+}
+
+function InvoiceDialog({ open, onClose, projectId, projectName }: InvoiceDialogProps) {
+  const { toast } = useToast();
+  const createInvoice = useCreateInvoice();
+
+  const [clientName, setClientName] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [lineItems, setLineItems] = useState<LineItem[]>([{ description: "Photography Services", amount: "" }]);
+
+  const total = lineItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+
+  const addLine = () => setLineItems(prev => [...prev, { description: "", amount: "" }]);
+  const removeLine = (i: number) => setLineItems(prev => prev.filter((_, idx) => idx !== i));
+  const updateLine = (i: number, field: keyof LineItem, val: string) =>
+    setLineItems(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
+
+  const handleSubmit = () => {
+    if (!clientName.trim()) {
+      toast({ title: "Client name is required", variant: "destructive" });
+      return;
+    }
+    const items = lineItems.filter(l => l.description.trim()).map(l => ({
+      description: l.description,
+      amount: parseFloat(l.amount) || 0,
+    }));
+    if (items.length === 0) {
+      toast({ title: "Add at least one line item", variant: "destructive" });
+      return;
+    }
+    createInvoice.mutate({
+      id: projectId,
+      data: {
+        clientName: clientName.trim(),
+        clientEmail: clientEmail.trim() || null,
+        lineItems: items,
+        notes: notes.trim() || null,
+        dueDate: dueDate || null,
+      },
+    }, {
+      onSuccess: inv => {
+        const shareUrl = `${window.location.origin}/invoice/${inv.shareToken}`;
+        navigator.clipboard.writeText(shareUrl).catch(() => {});
+        toast({ title: "Invoice created", description: "Share link copied to clipboard. Mark as Sent in the invoice to show it in the gallery." });
+        onClose();
+      },
+      onError: () => toast({ title: "Failed to create invoice", variant: "destructive" }),
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Receipt className="w-4 h-4 text-primary" />
+            Create Invoice — {projectName}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Client Name *</Label>
+              <Input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Sarah Chen" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Client Email</Label>
+              <Input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="sarah@example.com" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Due Date</Label>
+            <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Line Items</Label>
+            {lineItems.map((item, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <Input
+                  className="flex-1"
+                  placeholder="Description"
+                  value={item.description}
+                  onChange={e => updateLine(i, "description", e.target.value)}
+                />
+                <Input
+                  className="w-28"
+                  type="number"
+                  placeholder="$0.00"
+                  min="0"
+                  step="0.01"
+                  value={item.amount}
+                  onChange={e => updateLine(i, "amount", e.target.value)}
+                />
+                {lineItems.length > 1 && (
+                  <button onClick={() => removeLine(i)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button onClick={addLine} className="text-xs text-primary hover:underline underline-offset-2">
+              + Add line item
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg bg-primary/8 border border-primary/15 px-4 py-2.5">
+            <span className="text-sm font-medium text-foreground/70">Total</span>
+            <span className="text-lg font-bold text-primary">
+              {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(total)}
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Notes (optional)</Label>
+            <Textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Payment due within 30 days…" />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={createInvoice.isPending}>
+            {createInvoice.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Receipt className="w-4 h-4 mr-2" />}
+            Create Invoice
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -182,12 +368,77 @@ export default function ProjectDetailPage() {
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [showUpload, setShowUpload] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+
+  // DnD state
+  const [orderedIds, setOrderedIds] = useState<number[]>([]);
+  const dragIndexRef = useRef<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const pendingReorder = useRef(false);
 
   const { data: project, isLoading: projectLoading } = useGetProject(projectId);
   const { data: media, isLoading: mediaLoading } = useListMedia(projectId);
   const { data: galleries } = useListGalleries(projectId);
   const { data: stats } = useGetProjectStats(projectId);
   const createGallery = useCreateGallery();
+  const updateProject = useUpdateProject();
+  const reorderMedia = useReorderMedia();
+
+  useEffect(() => {
+    if (media && !pendingReorder.current) {
+      setOrderedIds(media.map(m => m.id));
+    }
+  }, [media]);
+
+  const mediaById = Object.fromEntries((media ?? []).map(m => [m.id, m]));
+  const orderedMedia = orderedIds.map(id => mediaById[id]).filter(Boolean) as NonNullable<typeof media>;
+
+  const handleDragStart = (index: number) => {
+    dragIndexRef.current = index;
+  };
+
+  const handleDragOver = (hoverIndex: number) => {
+    if (dragIndexRef.current === null || dragIndexRef.current === hoverIndex) return;
+    setOverIndex(hoverIndex);
+    setOrderedIds(prev => {
+      const next = [...prev];
+      const [item] = next.splice(dragIndexRef.current!, 1);
+      next.splice(hoverIndex, 0, item);
+      dragIndexRef.current = hoverIndex;
+      return next;
+    });
+  };
+
+  const handleDragEnd = () => {
+    setOverIndex(null);
+    dragIndexRef.current = null;
+    pendingReorder.current = true;
+    reorderMedia.mutate({ id: projectId, data: { ids: orderedIds } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListMediaQueryKey(projectId) });
+        pendingReorder.current = false;
+        toast({ title: "Order saved" });
+      },
+      onError: () => {
+        pendingReorder.current = false;
+        toast({ title: "Failed to save order", variant: "destructive" });
+      },
+    });
+  };
+
+  const handleSetCover = (url: string) => {
+    updateProject.mutate({ id: projectId, data: { coverImageUrl: url } }, {
+      onSuccess: () => toast({ title: "Cover image updated" }),
+      onError: () => toast({ title: "Failed to set cover", variant: "destructive" }),
+    });
+  };
+
+  const handleStatusChange = (status: string) => {
+    updateProject.mutate({ id: projectId, data: { status: status as "draft" | "active" | "delivered" | "archived" | "completed" | "paid" } }, {
+      onSuccess: () => toast({ title: `Status updated to ${STATUS_OPTIONS.find(s => s.value === status)?.label ?? status}` }),
+      onError: () => toast({ title: "Failed to update status", variant: "destructive" }),
+    });
+  };
 
   const handleCreateGallery = () => {
     createGallery.mutate({
@@ -201,9 +452,9 @@ export default function ProjectDetailPage() {
         isPasswordProtected: false,
         password: null,
         expiresAt: null,
-      }
+      },
     }, {
-      onSuccess: (gal) => {
+      onSuccess: gal => {
         queryClient.invalidateQueries({ queryKey: getListGalleriesQueryKey(projectId) });
         toast({ title: "Gallery created", description: `Share token: ${gal.shareToken}` });
         setLocation(`/projects/${projectId}/gallery/${gal.id}`);
@@ -234,13 +485,13 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const allMedia = media ?? [];
+  const allMedia = orderedMedia.length > 0 ? orderedMedia : (media ?? []);
 
   return (
     <Layout
       breadcrumbs={[
         { label: "Projects", href: "/projects" },
-        { label: project.name }
+        { label: project.name },
       ]}
     >
       {viewerIndex !== null && allMedia.length > 0 && (
@@ -250,6 +501,13 @@ export default function ProjectDetailPage() {
           onClose={() => setViewerIndex(null)}
         />
       )}
+
+      <InvoiceDialog
+        open={showInvoiceDialog}
+        onClose={() => setShowInvoiceDialog(false)}
+        projectId={projectId}
+        projectName={project.name}
+      />
 
       <div className="p-6 space-y-6">
         {/* Hero */}
@@ -263,20 +521,42 @@ export default function ProjectDetailPage() {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6">
-            <div className="flex items-end justify-between">
+            <div className="flex items-end justify-between gap-4">
               <div>
-                <Badge className={`mb-2 text-xs font-semibold ${STATUS_COLORS[project.status]}`}>
-                  {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                </Badge>
+                {/* Status selector */}
+                <div className="mb-2">
+                  <Select value={project.status} onValueChange={handleStatusChange}>
+                    <SelectTrigger className="h-auto w-auto border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:hidden">
+                      <Badge className={`text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity ${STATUS_COLORS[project.status] ?? "badge-draft"}`}>
+                        {STATUS_OPTIONS.find(s => s.value === project.status)?.label ?? project.status}
+                        <span className="ml-1 text-[9px] opacity-60">▾</span>
+                      </Badge>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <h1 className="text-2xl font-bold text-white">{project.name}</h1>
                 <p className="text-white/70 text-sm">{project.address}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <Button
                   size="sm"
                   variant="outline"
                   className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={() => { setShowUpload(s => !s); }}
+                  onClick={() => setShowInvoiceDialog(true)}
+                  data-testid="button-create-invoice"
+                >
+                  <Receipt className="w-4 h-4 mr-1.5" /> Invoice
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  onClick={() => setShowUpload(s => !s)}
                   data-testid="button-upload-media"
                 >
                   <Upload className="w-4 h-4 mr-1.5" /> Upload
@@ -292,9 +572,9 @@ export default function ProjectDetailPage() {
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: "Photos", value: stats?.photos ?? allMedia.filter(m => m.mediaType === "photo").length },
-            { label: "Videos", value: stats?.videos ?? allMedia.filter(m => m.mediaType === "video").length },
-            { label: "AI Jobs", value: stats?.aiProcessed ?? 0 },
+            { label: "Photos",    value: stats?.photos    ?? allMedia.filter(m => m.mediaType === "photo").length },
+            { label: "Videos",   value: stats?.videos    ?? allMedia.filter(m => m.mediaType === "video").length },
+            { label: "AI Jobs",  value: stats?.aiProcessed ?? 0 },
             { label: "Galleries", value: galleries?.length ?? 0 },
           ].map(s => (
             <Card key={s.label}>
@@ -330,7 +610,7 @@ export default function ProjectDetailPage() {
               <>
                 <div className="flex items-center justify-between">
                   <p className="text-[11.5px] text-muted-foreground">
-                    {allMedia.length} {allMedia.length === 1 ? "file" : "files"} · Hover a photo to delete or replace it. Click to open &amp; edit.
+                    {allMedia.length} {allMedia.length === 1 ? "file" : "files"} · Drag to reorder · Hover for cover, delete, or replace
                   </p>
                   {!showUpload && (
                     <button
@@ -342,7 +622,10 @@ export default function ProjectDetailPage() {
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                <div
+                  className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                  onDragOver={e => e.preventDefault()}
+                >
                   {allMedia.map((m, i) => (
                     <MediaCard
                       key={m.id}
@@ -350,6 +633,13 @@ export default function ProjectDetailPage() {
                       index={i}
                       onOpen={setViewerIndex}
                       projectId={projectId}
+                      coverImageUrl={project.coverImageUrl}
+                      onSetCover={handleSetCover}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDragEnd={handleDragEnd}
+                      isDragging={dragIndexRef.current === i}
+                      isOver={overIndex === i}
                     />
                   ))}
                 </div>

@@ -26,12 +26,14 @@ import type {
   CreateClientBody,
   CreateCommentBody,
   CreateGalleryBody,
+  CreateInvoiceBody,
   CreateProjectBody,
   DashboardSummary,
   ErrorEnvelope,
   FavoriteStatus,
   Gallery,
   HealthStatus,
+  Invoice,
   ListMediaParams,
   ListProjectsParams,
   ListingPreview,
@@ -41,6 +43,7 @@ import type {
   ProjectStats,
   PublicGallery,
   RegisterBody,
+  ReorderMediaBody,
   StorageUsage,
   Subscription,
   ToggleFavoriteBody,
@@ -1291,6 +1294,267 @@ export const useDeleteProject = <
 > => {
   return useMutation(getDeleteProjectMutationOptions(options));
 };
+
+/**
+ * @summary Reorder media assets in a project
+ */
+export const getReorderMediaUrl = (id: number) => {
+  return `/api/projects/${id}/media/reorder`;
+};
+
+export const reorderMedia = async (
+  id: number,
+  reorderMediaBody: ReorderMediaBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getReorderMediaUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reorderMediaBody),
+  });
+};
+
+export const getReorderMediaMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderMedia>>,
+    TError,
+    { id: number; data: BodyType<ReorderMediaBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reorderMedia>>,
+  TError,
+  { id: number; data: BodyType<ReorderMediaBody> },
+  TContext
+> => {
+  const mutationKey = ["reorderMedia"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reorderMedia>>,
+    { id: number; data: BodyType<ReorderMediaBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return reorderMedia(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReorderMediaMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderMedia>>
+>;
+export type ReorderMediaMutationBody = BodyType<ReorderMediaBody>;
+export type ReorderMediaMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reorder media assets in a project
+ */
+export const useReorderMedia = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderMedia>>,
+    TError,
+    { id: number; data: BodyType<ReorderMediaBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reorderMedia>>,
+  TError,
+  { id: number; data: BodyType<ReorderMediaBody> },
+  TContext
+> => {
+  return useMutation(getReorderMediaMutationOptions(options));
+};
+
+/**
+ * @summary Create an invoice for a project
+ */
+export const getCreateInvoiceUrl = (id: number) => {
+  return `/api/projects/${id}/invoice`;
+};
+
+export const createInvoice = async (
+  id: number,
+  createInvoiceBody: CreateInvoiceBody,
+  options?: RequestInit,
+): Promise<Invoice> => {
+  return customFetch<Invoice>(getCreateInvoiceUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createInvoiceBody),
+  });
+};
+
+export const getCreateInvoiceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createInvoice>>,
+    TError,
+    { id: number; data: BodyType<CreateInvoiceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createInvoice>>,
+  TError,
+  { id: number; data: BodyType<CreateInvoiceBody> },
+  TContext
+> => {
+  const mutationKey = ["createInvoice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createInvoice>>,
+    { id: number; data: BodyType<CreateInvoiceBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createInvoice(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateInvoiceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createInvoice>>
+>;
+export type CreateInvoiceMutationBody = BodyType<CreateInvoiceBody>;
+export type CreateInvoiceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create an invoice for a project
+ */
+export const useCreateInvoice = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createInvoice>>,
+    TError,
+    { id: number; data: BodyType<CreateInvoiceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createInvoice>>,
+  TError,
+  { id: number; data: BodyType<CreateInvoiceBody> },
+  TContext
+> => {
+  return useMutation(getCreateInvoiceMutationOptions(options));
+};
+
+/**
+ * @summary Get a public invoice by share token
+ */
+export const getGetPublicInvoiceUrl = (token: string) => {
+  return `/api/invoices/${token}`;
+};
+
+export const getPublicInvoice = async (
+  token: string,
+  options?: RequestInit,
+): Promise<Invoice> => {
+  return customFetch<Invoice>(getGetPublicInvoiceUrl(token), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPublicInvoiceQueryKey = (token: string) => {
+  return [`/api/invoices/${token}`] as const;
+};
+
+export const getGetPublicInvoiceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPublicInvoice>>,
+  TError = ErrorType<void>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPublicInvoice>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPublicInvoiceQueryKey(token);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPublicInvoice>>
+  > = ({ signal }) => getPublicInvoice(token, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!token,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPublicInvoice>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPublicInvoiceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPublicInvoice>>
+>;
+export type GetPublicInvoiceQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a public invoice by share token
+ */
+
+export function useGetPublicInvoice<
+  TData = Awaited<ReturnType<typeof getPublicInvoice>>,
+  TError = ErrorType<void>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPublicInvoice>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPublicInvoiceQueryOptions(token, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get project media stats

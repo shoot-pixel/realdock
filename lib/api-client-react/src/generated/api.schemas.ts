@@ -142,6 +142,8 @@ export const ProjectStatus = {
   active: "active",
   delivered: "delivered",
   archived: "archived",
+  completed: "completed",
+  paid: "paid",
 } as const;
 
 export interface Project {
@@ -210,6 +212,8 @@ export const UpdateProjectBodyStatus = {
   active: "active",
   delivered: "delivered",
   archived: "archived",
+  completed: "completed",
+  paid: "paid",
 } as const;
 
 export interface UpdateProjectBody {
@@ -521,8 +525,60 @@ export interface PublicGallery {
   theme: string;
   /** @nullable */
   customCss?: string | null;
+  /** @nullable */
+  invoiceToken?: string | null;
   photographerName: string;
   media: MediaAsset[];
+}
+
+export interface ReorderMediaBody {
+  ids: number[];
+}
+
+export interface InvoiceLineItem {
+  description: string;
+  amount: number;
+}
+
+export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus];
+
+export const InvoiceStatus = {
+  draft: "draft",
+  sent: "sent",
+  paid: "paid",
+  void: "void",
+} as const;
+
+export interface Invoice {
+  id: number;
+  projectId: number;
+  userId: number;
+  shareToken: string;
+  status: InvoiceStatus;
+  clientName: string;
+  /** @nullable */
+  clientEmail?: string | null;
+  lineItems: InvoiceLineItem[];
+  /** @nullable */
+  notes?: string | null;
+  totalAmount: number;
+  /** @nullable */
+  dueDate?: string | null;
+  projectName: string;
+  projectAddress: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateInvoiceBody {
+  clientName: string;
+  /** @nullable */
+  clientEmail?: string | null;
+  lineItems: InvoiceLineItem[];
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  dueDate?: string | null;
 }
 
 export interface Comment {

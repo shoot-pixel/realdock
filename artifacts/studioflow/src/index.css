@@ -316,4 +316,12 @@
     background: rgba(255,255,255,0.05);
     color: #525660;
   }
+  .badge-completed {
+    background: rgba(99, 179, 237, 0.12);
+    color: #63B3ED;
+  }
+  .badge-paid {
+    background: rgba(72, 187, 120, 0.15);
+    color: #48BB78;
+  }
 }

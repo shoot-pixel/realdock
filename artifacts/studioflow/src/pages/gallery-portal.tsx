@@ -3,7 +3,7 @@ import { useRoute } from "wouter";
 import { useGetPublicGallery } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Camera, Download, X, ChevronLeft, ChevronRight, ImageIcon, CheckCircle2, Loader2,
+  Camera, Download, X, ChevronLeft, ChevronRight, ImageIcon, CheckCircle2, Loader2, Receipt,
 } from "lucide-react";
 
 // ─── Theme system ─────────────────────────────────────────────────────────────
@@ -58,7 +58,6 @@ export default function GalleryPortalPage() {
 
   const { data: gallery, isLoading } = useGetPublicGallery(token);
 
-  // Apply theme + custom CSS when gallery loads
   useEffect(() => {
     if (!gallery) return;
     applyTheme(gallery.theme ?? "studio-dark");
@@ -73,7 +72,6 @@ export default function GalleryPortalPage() {
     }
 
     return () => {
-      // Restore app theme on unmount
       const el = document.documentElement;
       el.removeAttribute("style");
       el.classList.add("dark");
@@ -83,7 +81,6 @@ export default function GalleryPortalPage() {
 
   const media = gallery?.media ?? [];
 
-  // Navigate lightbox
   const prev = useCallback(() => setLightboxIndex(i => (i !== null && i > 0 ? i - 1 : i)), []);
   const next = useCallback(() => setLightboxIndex(i => (i !== null && i < media.length - 1 ? i + 1 : i)), [media.length]);
 
@@ -188,6 +185,18 @@ export default function GalleryPortalPage() {
             <span className="text-xs text-muted-foreground hidden sm:block">
               {media.length} {media.length === 1 ? "photo" : "photos"}
             </span>
+            {gallery.invoiceToken && (
+              <a
+                href={`/invoice/${gallery.invoiceToken}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="button-view-invoice"
+                className="flex items-center gap-1.5 h-9 px-4 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">View Invoice</span>
+              </a>
+            )}
             {gallery.allowDownload && media.length > 0 && (
               <button
                 onClick={handleDownloadAll}
@@ -337,7 +346,6 @@ export default function GalleryPortalPage() {
           data-testid="lightbox"
           onClick={() => setLightboxIndex(null)}
         >
-          {/* Close */}
           <button
             className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
             onClick={() => setLightboxIndex(null)}
@@ -345,7 +353,6 @@ export default function GalleryPortalPage() {
             <X className="w-5 h-5" />
           </button>
 
-          {/* Prev */}
           {lightboxIndex > 0 && (
             <button
               className="absolute left-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
@@ -355,7 +362,6 @@ export default function GalleryPortalPage() {
             </button>
           )}
 
-          {/* Next */}
           {lightboxIndex < media.length - 1 && (
             <button
               className="absolute right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
@@ -365,7 +371,6 @@ export default function GalleryPortalPage() {
             </button>
           )}
 
-          {/* Image */}
           <img
             src={lightboxMedia.originalUrl}
             alt={lightboxMedia.filename}
@@ -373,7 +378,6 @@ export default function GalleryPortalPage() {
             onClick={e => e.stopPropagation()}
           />
 
-          {/* Bottom bar */}
           <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-3 z-10">
             <span className="text-white/50 text-xs tabular-nums">
               {lightboxIndex + 1} / {media.length}

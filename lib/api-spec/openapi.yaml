@@ -311,6 +311,73 @@ paths:
         "204":
           description: Deleted
 
+  /projects/{id}/media/reorder:
+    post:
+      operationId: reorderMedia
+      tags: [media]
+      summary: Reorder media assets in a project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderMediaBody"
+      responses:
+        "204":
+          description: Reordered
+
+  /projects/{id}/invoice:
+    post:
+      operationId: createInvoice
+      tags: [projects]
+      summary: Create an invoice for a project
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceBody"
+      responses:
+        "201":
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /invoices/{token}:
+    get:
+      operationId: getPublicInvoice
+      tags: [projects]
+      summary: Get a public invoice by share token
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Not found
+
   /projects/{id}/stats:
     get:
       operationId: getProjectStats
@@ -1129,7 +1196,7 @@ components:
           enum: [residential, commercial, luxury, vacation, land]
         status:
           type: string
-          enum: [draft, active, delivered, archived]
+          enum: [draft, active, delivered, archived, completed, paid]
         coverImageUrl:
           type: ["string", "null"]
         mediaCount:
@@ -1190,7 +1257,7 @@ components:
           enum: [residential, commercial, luxury, vacation, land]
         status:
           type: string
-          enum: [draft, active, delivered, archived]
+          enum: [draft, active, delivered, archived, completed, paid]
         clientId:
           type: ["integer", "null"]
         shootDate:
@@ -1564,6 +1631,8 @@ components:
           type: string
         customCss:
           type: ["string", "null"]
+        invoiceToken:
+          type: ["string", "null"]
         photographerName:
           type: string
         media:
@@ -1581,6 +1650,96 @@ components:
         - theme
         - photographerName
         - media
+
+    ReorderMediaBody:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+      required:
+        - ids
+
+    InvoiceLineItem:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          type: number
+      required:
+        - description
+        - amount
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        userId:
+          type: integer
+        shareToken:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, paid, void]
+        clientName:
+          type: string
+        clientEmail:
+          type: ["string", "null"]
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceLineItem"
+        notes:
+          type: ["string", "null"]
+        totalAmount:
+          type: number
+        dueDate:
+          type: ["string", "null"]
+        projectName:
+          type: string
+        projectAddress:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - projectId
+        - userId
+        - shareToken
+        - status
+        - clientName
+        - lineItems
+        - totalAmount
+        - projectName
+        - projectAddress
+        - createdAt
+        - updatedAt
+
+    CreateInvoiceBody:
+      type: object
+      properties:
+        clientName:
+          type: string
+        clientEmail:
+          type: ["string", "null"]
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceLineItem"
+        notes:
+          type: ["string", "null"]
+        dueDate:
+          type: ["string", "null"]
+      required:
+        - clientName
+        - lineItems
 
     Comment:
       type: object

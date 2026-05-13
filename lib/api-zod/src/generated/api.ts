@@ -162,7 +162,14 @@ export const ListProjectsResponseItem = zod.object({
     "vacation",
     "land",
   ]),
-  status: zod.enum(["draft", "active", "delivered", "archived"]),
+  status: zod.enum([
+    "draft",
+    "active",
+    "delivered",
+    "archived",
+    "completed",
+    "paid",
+  ]),
   coverImageUrl: zod.string().nullish(),
   mediaCount: zod.number(),
   shootDate: zod.string().nullish(),
@@ -212,7 +219,14 @@ export const GetProjectResponse = zod.object({
     "vacation",
     "land",
   ]),
-  status: zod.enum(["draft", "active", "delivered", "archived"]),
+  status: zod.enum([
+    "draft",
+    "active",
+    "delivered",
+    "archived",
+    "completed",
+    "paid",
+  ]),
   coverImageUrl: zod.string().nullish(),
   mediaCount: zod.number(),
   shootDate: zod.string().nullish(),
@@ -235,7 +249,9 @@ export const UpdateProjectBody = zod.object({
   propertyType: zod
     .enum(["residential", "commercial", "luxury", "vacation", "land"])
     .optional(),
-  status: zod.enum(["draft", "active", "delivered", "archived"]).optional(),
+  status: zod
+    .enum(["draft", "active", "delivered", "archived", "completed", "paid"])
+    .optional(),
   clientId: zod.number().nullish(),
   shootDate: zod.string().nullish(),
   deliveryDate: zod.string().nullish(),
@@ -256,7 +272,14 @@ export const UpdateProjectResponse = zod.object({
     "vacation",
     "land",
   ]),
-  status: zod.enum(["draft", "active", "delivered", "archived"]),
+  status: zod.enum([
+    "draft",
+    "active",
+    "delivered",
+    "archived",
+    "completed",
+    "paid",
+  ]),
   coverImageUrl: zod.string().nullish(),
   mediaCount: zod.number(),
   shootDate: zod.string().nullish(),
@@ -271,6 +294,67 @@ export const UpdateProjectResponse = zod.object({
  */
 export const DeleteProjectParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Reorder media assets in a project
+ */
+export const ReorderMediaParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ReorderMediaBody = zod.object({
+  ids: zod.array(zod.number()),
+});
+
+/**
+ * @summary Create an invoice for a project
+ */
+export const CreateInvoiceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateInvoiceBody = zod.object({
+  clientName: zod.string(),
+  clientEmail: zod.string().nullish(),
+  lineItems: zod.array(
+    zod.object({
+      description: zod.string(),
+      amount: zod.number(),
+    }),
+  ),
+  notes: zod.string().nullish(),
+  dueDate: zod.string().nullish(),
+});
+
+/**
+ * @summary Get a public invoice by share token
+ */
+export const GetPublicInvoiceParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const GetPublicInvoiceResponse = zod.object({
+  id: zod.number(),
+  projectId: zod.number(),
+  userId: zod.number(),
+  shareToken: zod.string(),
+  status: zod.enum(["draft", "sent", "paid", "void"]),
+  clientName: zod.string(),
+  clientEmail: zod.string().nullish(),
+  lineItems: zod.array(
+    zod.object({
+      description: zod.string(),
+      amount: zod.number(),
+    }),
+  ),
+  notes: zod.string().nullish(),
+  totalAmount: zod.number(),
+  dueDate: zod.string().nullish(),
+  projectName: zod.string(),
+  projectAddress: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
 });
 
 /**
@@ -783,6 +867,7 @@ export const GetPublicGalleryResponse = zod.object({
   coverImageUrl: zod.string().nullish(),
   theme: zod.string(),
   customCss: zod.string().nullish(),
+  invoiceToken: zod.string().nullish(),
   photographerName: zod.string(),
   media: zod.array(
     zod.object({

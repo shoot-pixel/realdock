@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { db, mediaAssetsTable, projectsTable } from "@workspace/db";
 import { UploadMediaBody, UpdateMediaBody, UpdateMediaParams, DeleteMediaParams, GetMediaParams, ListMediaParams, ListMediaQueryParams, ApproveMediaParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
+import { ReorderMediaBody, ReorderMediaParams } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -133,6 +134,37 @@ router.delete("/media/:id", requireAuth, async (req: AuthenticatedRequest, res):
     res.status(404).json({ error: "Media not found" });
     return;
   }
+  res.sendStatus(204);
+});
+
+router.post("/projects/:id/media/reorder", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
+  const params = ReorderMediaParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const parsed = ReorderMediaBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [project] = await db.select().from(projectsTable)
+    .where(and(eq(projectsTable.id, params.data.id), eq(projectsTable.userId, req.userId!)));
+  if (!project) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+
+  const { ids } = parsed.data;
+  await Promise.all(
+    ids.map((mediaId: number, sortOrder: number) =>
+      db.update(mediaAssetsTable)
+        .set({ sortOrder })
+        .where(and(eq(mediaAssetsTable.id, mediaId), eq(mediaAssetsTable.projectId, project.id)))
+    )
+  );
+
   res.sendStatus(204);
 });
 

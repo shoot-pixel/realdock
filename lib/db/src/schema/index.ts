@@ -6,3 +6,4 @@ export * from "./ai_jobs";
 export * from "./galleries";
 export * from "./comments";
 export * from "./favorites";
+export * from "./invoices";

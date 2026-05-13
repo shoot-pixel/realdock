@@ -16,6 +16,7 @@ import ProjectDetailPage from "@/pages/project-detail";
 import NewProjectPage from "@/pages/new-project";
 import GalleryManagePage from "@/pages/gallery-manage";
 import GalleryPortalPage from "@/pages/gallery-portal";
+import InvoicePortalPage from "@/pages/invoice-portal";
 import ClientsPage from "@/pages/clients";
 import SettingsPage from "@/pages/settings";
 
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
       <Route path="/gallery/:token" component={GalleryPortalPage} />
+      <Route path="/invoice/:token" component={InvoicePortalPage} />
       <Route path="/dashboard">
         {() => <ProtectedRoute component={DashboardPage} />}
       </Route>

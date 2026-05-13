@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, inArray, asc } from "drizzle-orm";
-import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable, usersTable } from "@workspace/db";
+import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable, usersTable, invoicesTable } from "@workspace/db";
 import { CreateGalleryBody, CreateGalleryParams, UpdateGalleryBody, UpdateGalleryParams, DeleteGalleryParams, GetGalleryParams, GetPublicGalleryParams, ListGalleriesParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
 import { randomBytes } from "crypto";
@@ -216,6 +216,9 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
   const { gallery, project, photographer, media } = result;
   await db.update(galleriesTable).set({ viewCount: gallery.viewCount + 1 }).where(eq(galleriesTable.id, gallery.id));
 
+  const [invoice] = await db.select().from(invoicesTable)
+    .where(and(eq(invoicesTable.projectId, project.id), eq(invoicesTable.status, "sent")));
+
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   res.json({
     id: gallery.id,
@@ -231,6 +234,7 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
     coverImageUrl: gallery.coverImageUrl ?? null,
     theme: gallery.theme ?? "classic",
     customCss: gallery.customCss ?? null,
+    invoiceToken: invoice?.shareToken ?? null,
     photographerName: photographer?.name ?? "RealDock Photographer",
     media: media.map(m => ({
       id: m.id,

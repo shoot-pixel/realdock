@@ -11,6 +11,7 @@ import clientsRouter from "./clients";
 import dashboardRouter from "./dashboard";
 import usersRouter from "./users";
 import storageRouter from "./storage";
+import invoicesRouter from "./invoices";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(favoritesRouter);
 router.use(clientsRouter);
 router.use(dashboardRouter);
 router.use(usersRouter);
+router.use(invoicesRouter);
 
 export default router;

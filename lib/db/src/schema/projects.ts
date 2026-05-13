@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const propertyTypeEnum = pgEnum("property_type", ["residential", "commercial", "luxury", "vacation", "land"]);
-export const projectStatusEnum = pgEnum("project_status", ["draft", "active", "delivered", "archived"]);
+export const projectStatusEnum = pgEnum("project_status", ["draft", "active", "delivered", "archived", "completed", "paid"]);
 
 export const projectsTable = pgTable("projects", {
   id: serial("id").primaryKey(),
