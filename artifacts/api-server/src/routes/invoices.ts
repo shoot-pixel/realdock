@@ -68,7 +68,7 @@ router.post("/projects/:id/invoice", requireAuth, async (req: AuthenticatedReque
     notes: notes ?? null,
     totalAmount,
     dueDate: dueDate ?? null,
-    status: "draft",
+    status: "sent",
   }).returning();
 
   res.status(201).json(serializeInvoice(invoice, project.name, project.address));

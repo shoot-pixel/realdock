@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, inArray, asc } from "drizzle-orm";
+import { eq, and, inArray, asc, ne } from "drizzle-orm";
 import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable, usersTable, invoicesTable } from "@workspace/db";
 import { CreateGalleryBody, CreateGalleryParams, UpdateGalleryBody, UpdateGalleryParams, DeleteGalleryParams, GetGalleryParams, GetPublicGalleryParams, ListGalleriesParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
@@ -217,7 +217,7 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
   await db.update(galleriesTable).set({ viewCount: gallery.viewCount + 1 }).where(eq(galleriesTable.id, gallery.id));
 
   const [invoice] = await db.select().from(invoicesTable)
-    .where(and(eq(invoicesTable.projectId, project.id), eq(invoicesTable.status, "sent")));
+    .where(and(eq(invoicesTable.projectId, project.id), ne(invoicesTable.status, "void")));
 
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   res.json({
