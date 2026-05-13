@@ -36,6 +36,8 @@ function galleryRow(gallery: typeof galleriesTable.$inferSelect) {
     downloadCount: gallery.downloadCount,
     clientMessage: gallery.clientMessage,
     brandingLogoUrl: gallery.brandingLogoUrl,
+    companyName: gallery.companyName ?? null,
+    coverImageUrl: gallery.coverImageUrl ?? null,
     theme: gallery.theme ?? "classic",
     customCss: gallery.customCss ?? null,
     createdAt: gallery.createdAt.toISOString(),
@@ -169,10 +171,20 @@ async function fetchPublicGallery(token: string) {
   const galleryMedia = await db.select().from(galleryMediaTable)
     .where(eq(galleryMediaTable.galleryId, gallery.id))
     .orderBy(galleryMediaTable.sortOrder);
-  const mediaIds = galleryMedia.map(gm => gm.mediaId);
-  const media = mediaIds.length > 0
-    ? await db.select().from(mediaAssetsTable).where(inArray(mediaAssetsTable.id, mediaIds))
-    : [];
+
+  let media;
+  if (galleryMedia.length > 0) {
+    // Explicit selection — keep sort order
+    const mediaIds = galleryMedia.map(gm => gm.mediaId);
+    const rows = await db.select().from(mediaAssetsTable).where(inArray(mediaAssetsTable.id, mediaIds));
+    const byId = Object.fromEntries(rows.map(r => [r.id, r]));
+    media = mediaIds.map(id => byId[id]).filter(Boolean) as typeof rows;
+  } else {
+    // No explicit selection — fall back to all project media ordered by upload date
+    media = await db.select().from(mediaAssetsTable)
+      .where(eq(mediaAssetsTable.projectId, gallery.projectId))
+      .orderBy(mediaAssetsTable.sortOrder);
+  }
 
   return {
     gallery,
@@ -213,6 +225,8 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
     allowComments: gallery.allowComments,
     clientMessage: gallery.clientMessage,
     brandingLogoUrl: gallery.brandingLogoUrl,
+    companyName: gallery.companyName ?? photographer?.businessName ?? null,
+    coverImageUrl: gallery.coverImageUrl ?? null,
     theme: gallery.theme ?? "classic",
     customCss: gallery.customCss ?? null,
     photographerName: photographer?.name ?? "StudioFlow Photographer",

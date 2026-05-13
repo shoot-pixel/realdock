@@ -1434,6 +1434,10 @@ components:
           type: ["string", "null"]
         brandingLogoUrl:
           type: ["string", "null"]
+        companyName:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: ["string", "null"]
         theme:
           type: string
         customCss:
@@ -1516,6 +1520,12 @@ components:
             type: integer
         clientMessage:
           type: ["string", "null"]
+        brandingLogoUrl:
+          type: ["string", "null"]
+        companyName:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: ["string", "null"]
         theme:
           type: string
         customCss:
@@ -1541,6 +1551,10 @@ components:
         clientMessage:
           type: ["string", "null"]
         brandingLogoUrl:
+          type: ["string", "null"]
+        companyName:
+          type: ["string", "null"]
+        coverImageUrl:
           type: ["string", "null"]
         theme:
           type: string

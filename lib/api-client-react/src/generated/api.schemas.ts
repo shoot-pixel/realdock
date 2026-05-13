@@ -428,6 +428,10 @@ export interface Gallery {
   clientMessage?: string | null;
   /** @nullable */
   brandingLogoUrl?: string | null;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  coverImageUrl?: string | null;
   theme: string;
   /** @nullable */
   customCss?: string | null;
@@ -484,6 +488,12 @@ export interface UpdateGalleryBody {
   mediaIds?: number[];
   /** @nullable */
   clientMessage?: string | null;
+  /** @nullable */
+  brandingLogoUrl?: string | null;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  coverImageUrl?: string | null;
   theme?: string;
   /** @nullable */
   customCss?: string | null;
@@ -501,6 +511,10 @@ export interface PublicGallery {
   clientMessage?: string | null;
   /** @nullable */
   brandingLogoUrl?: string | null;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  coverImageUrl?: string | null;
   theme: string;
   /** @nullable */
   customCss?: string | null;
