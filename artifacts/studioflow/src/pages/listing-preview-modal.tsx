@@ -92,7 +92,7 @@ function ZillowTab({ data }: { data: ListingPreview }) {
         <p className="text-sm text-gray-600 leading-relaxed mb-4">{data.description}</p>
 
         <div className="space-y-2 mb-5">
-          {data.highlights.map((h, i) => (
+          {data.highlights.slice(0, 6).map((h, i) => (
             <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
               <Check className="w-4 h-4 text-[#006AFF] shrink-0 mt-0.5" />
               <span>{h}</span>
@@ -149,7 +149,7 @@ function RedfinTab({ data }: { data: ListingPreview }) {
         <p className="text-sm text-gray-600 leading-relaxed mb-4">{data.description}</p>
 
         <div className="space-y-2 mb-5">
-          {data.highlights.map((h, i) => (
+          {data.highlights.slice(0, 6).map((h, i) => (
             <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
               <div className="w-4 h-4 rounded-full bg-[#CC0000]/10 flex items-center justify-center shrink-0 mt-0.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#CC0000]" />
@@ -236,7 +236,7 @@ function RealtorTab({ data }: { data: ListingPreview }) {
         <p className="text-sm text-gray-600 leading-relaxed mb-4">{data.description}</p>
 
         <div className="space-y-2 mb-5">
-          {data.highlights.map((h, i) => (
+          {data.highlights.slice(0, 6).map((h, i) => (
             <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
               <Check className="w-4 h-4 text-[#D92228] shrink-0 mt-0.5" />
               <span>{h}</span>
@@ -315,7 +315,7 @@ function CompassTab({ data }: { data: ListingPreview }) {
         </p>
 
         <div className="space-y-2.5 mb-6">
-          {data.highlights.map((h, i) => (
+          {data.highlights.slice(0, 6).map((h, i) => (
             <div key={i} className="flex items-start gap-3 text-sm text-gray-600">
               <div className="w-px h-4 bg-black shrink-0 mt-0.5" />
               <span>{h}</span>
