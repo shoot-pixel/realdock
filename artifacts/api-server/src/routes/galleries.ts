@@ -5,7 +5,10 @@ import { CreateGalleryBody, CreateGalleryParams, UpdateGalleryBody, UpdateGaller
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
 import { randomBytes } from "crypto";
 import { ZipArchive } from "archiver";
+import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import OpenAI from "openai";
+
+const objectStorageService = new ObjectStorageService();
 
 const router: IRouter = Router();
 
@@ -449,8 +452,29 @@ router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
     if (!url) continue;
 
     try {
-      const resp = await fetch(url);
-      if (!resp.ok) continue;
+      let buffer: Buffer;
+
+      if (url.startsWith("/objects/")) {
+        // Object storage path — read directly from GCS
+        const file = await objectStorageService.getObjectEntityFile(url);
+        const chunks: Buffer[] = [];
+        await new Promise<void>((resolve, reject) => {
+          const stream = file.createReadStream();
+          stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+          stream.on("end", resolve);
+          stream.on("error", reject);
+        });
+        buffer = Buffer.concat(chunks);
+      } else if (url.startsWith("http://") || url.startsWith("https://")) {
+        // External URL — fetch over HTTP
+        const resp = await fetch(url);
+        if (!resp.ok) continue;
+        buffer = Buffer.from(await resp.arrayBuffer());
+      } else {
+        // Unknown URL format — skip
+        req.log.warn({ url }, "Skipping media with unrecognised URL format");
+        continue;
+      }
 
       const urlPath = url.split("?")[0] ?? "";
       const inferredExt = urlPath.split(".").pop()?.toLowerCase() ?? "jpg";
@@ -462,10 +486,9 @@ router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
         ? m.filename
         : `photo-${String(i + 1).padStart(3, "0")}.${validExt}`;
 
-      const buffer = Buffer.from(await resp.arrayBuffer());
       archive.append(buffer, { name: entryName });
-    } catch {
-      // skip images that fail to fetch
+    } catch (err) {
+      req.log.warn({ err, mediaId: m.id }, "Skipping media asset — failed to read");
     }
   }
 
