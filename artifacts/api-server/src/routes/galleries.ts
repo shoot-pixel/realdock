@@ -4,6 +4,8 @@ import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable,
 import { CreateGalleryBody, CreateGalleryParams, UpdateGalleryBody, UpdateGalleryParams, DeleteGalleryParams, GetGalleryParams, GetPublicGalleryParams, ListGalleriesParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
 import { randomBytes } from "crypto";
+import { Readable } from "stream";
+import { ZipArchive } from "archiver";
 import OpenAI from "openai";
 
 const router: IRouter = Router();
@@ -367,6 +369,88 @@ Return JSON with this exact structure:
     ],
     generatedAt: new Date().toISOString(),
   });
+});
+
+router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
+  const params = GetPublicGalleryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid token" });
+    return;
+  }
+
+  const result = await fetchPublicGallery(params.data.token);
+  if ("error" in result) {
+    if (result.error === "private") {
+      res.status(403).json({ error: "This gallery is private." });
+      return;
+    }
+    res.status(404).json({ error: "Gallery not found" });
+    return;
+  }
+
+  const { gallery, project, media } = result;
+
+  if (!gallery.allowDownload) {
+    res.status(403).json({ error: "Downloads are not allowed for this gallery." });
+    return;
+  }
+
+  const safeProjectName = project.name
+    .replace(/[^\w\s\-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 50) || "gallery";
+
+  const zipFilename = `${safeProjectName}-photos.zip`;
+
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="${zipFilename}"`);
+  res.setHeader("Cache-Control", "no-store");
+
+  const archive = new ZipArchive({ zlib: { level: 5 } });
+
+  archive.on("error", (err) => {
+    req.log.error({ err }, "ZIP archive error");
+    if (!res.headersSent) res.status(500).end();
+  });
+
+  archive.pipe(res);
+
+  for (let i = 0; i < media.length; i++) {
+    const m = media[i]!;
+    const url = m.originalUrl ?? m.processedUrl ?? m.thumbnailUrl;
+    if (!url) continue;
+
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok || !resp.body) continue;
+
+      const urlPath = url.split("?")[0] ?? "";
+      const inferredExt = urlPath.split(".").pop()?.toLowerCase() ?? "jpg";
+      const validExt = ["jpg", "jpeg", "png", "webp", "gif", "tiff"].includes(inferredExt)
+        ? inferredExt
+        : "jpg";
+
+      const entryName = m.filename.includes(".")
+        ? m.filename
+        : `photo-${String(i + 1).padStart(3, "0")}.${validExt}`;
+
+      archive.append(Readable.fromWeb(resp.body as Parameters<typeof Readable.fromWeb>[0]), { name: entryName });
+    } catch {
+      // skip images that fail to fetch
+    }
+  }
+
+  await archive.finalize();
+
+  try {
+    await db
+      .update(galleriesTable)
+      .set({ downloadCount: gallery.downloadCount + 1 })
+      .where(eq(galleriesTable.id, gallery.id));
+  } catch {
+    // non-fatal
+  }
 });
 
 export default router;

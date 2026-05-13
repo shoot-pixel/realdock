@@ -125,18 +125,21 @@ export default function GalleryPortalPage() {
     document.body.removeChild(a);
   };
 
-  const handleDownloadAll = async () => {
+  const handleDownloadAll = () => {
     if (downloading || !gallery?.allowDownload) return;
     setDownloading(true);
     setDownloadDone(false);
-    for (let i = 0; i < media.length; i++) {
-      const m = media[i]!;
-      handleDownload(m.originalUrl, m.filename);
-      if (i < media.length - 1) await new Promise(r => setTimeout(r, 350));
-    }
-    setDownloading(false);
-    setDownloadDone(true);
-    setTimeout(() => setDownloadDone(false), 4000);
+    const a = document.createElement("a");
+    a.href = `/api/gallery/${token}/download-zip`;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => {
+      setDownloading(false);
+      setDownloadDone(true);
+      setTimeout(() => setDownloadDone(false), 4000);
+    }, 1500);
   };
 
   // ── Loading ────────────────────────────────────────────────────────────────
