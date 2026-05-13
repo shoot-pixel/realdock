@@ -6,7 +6,7 @@ import UploadZone from "@/components/UploadZone";
 import {
   useGetProject, useListMedia, useListGalleries, useCreateGallery,
   useGetProjectStats, getListGalleriesQueryKey, getListMediaQueryKey,
-  useDeleteMedia, useUpdateMedia, useUpdateProject, useReorderMedia, useCreateInvoice,
+  useDeleteMedia, useUpdateMedia, useUpdateProject, useReorderMedia, useCreateInvoice, useDeleteGallery,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import {
   ImageIcon, Zap, Share2, Plus, ExternalLink, Eye as EyeIcon, Upload,
-  Trash2, RefreshCw, Loader2, Star, GripVertical, Receipt, X,
+  Trash2, RefreshCw, Loader2, Star, GripVertical, Receipt, X, AlertTriangle,
 } from "lucide-react";
 
 const STATUS_OPTIONS = [
@@ -369,6 +369,7 @@ export default function ProjectDetailPage() {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [confirmDeleteGalleryId, setConfirmDeleteGalleryId] = useState<number | null>(null);
 
   // DnD state
   const [orderedIds, setOrderedIds] = useState<number[]>([]);
@@ -381,6 +382,7 @@ export default function ProjectDetailPage() {
   const { data: galleries } = useListGalleries(projectId);
   const { data: stats } = useGetProjectStats(projectId);
   const createGallery = useCreateGallery();
+  const deleteGallery = useDeleteGallery();
   const updateProject = useUpdateProject();
   const reorderMedia = useReorderMedia();
 
@@ -678,6 +680,44 @@ export default function ProjectDetailPage() {
                         <Button size="sm" variant="outline" onClick={() => setLocation(`/projects/${projectId}/gallery/${g.id}`)}>
                           <EyeIcon className="w-3.5 h-3.5 mr-1" /> Manage
                         </Button>
+                        {confirmDeleteGalleryId === g.id ? (
+                          <div className="flex gap-1.5 items-center">
+                            <span className="text-[11px] text-destructive font-medium flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Delete?
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              disabled={deleteGallery.isPending}
+                              data-testid={`button-confirm-delete-gallery-${g.id}`}
+                              onClick={() => {
+                                deleteGallery.mutate({ id: g.id }, {
+                                  onSuccess: () => {
+                                    queryClient.invalidateQueries({ queryKey: getListGalleriesQueryKey(projectId) });
+                                    setConfirmDeleteGalleryId(null);
+                                    toast({ title: "Gallery deleted" });
+                                  },
+                                  onError: () => toast({ title: "Failed to delete gallery", variant: "destructive" }),
+                                });
+                              }}
+                            >
+                              {deleteGallery.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Yes, delete"}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setConfirmDeleteGalleryId(null)}>
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            data-testid={`button-delete-gallery-${g.id}`}
+                            className="text-muted-foreground hover:text-destructive hover:border-destructive"
+                            onClick={() => setConfirmDeleteGalleryId(g.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
