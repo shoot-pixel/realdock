@@ -233,6 +233,47 @@ function InvoiceDialog({ open, onClose, projectId, projectName }: InvoiceDialogP
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
   const [lineItems, setLineItems] = useState<LineItem[]>([{ description: "Photography Services", amount: "" }]);
+  const [isExisting, setIsExisting] = useState(false);
+  const [existingToken, setExistingToken] = useState<string | null>(null);
+
+  // Pre-populate from existing invoice when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    const token = localStorage.getItem("sf_token");
+    if (!token) return;
+    fetch(`/api/projects/${projectId}/invoice`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => {
+      if (!r.ok) return null;
+      return r.json();
+    }).then((inv: { clientName: string; clientEmail: string | null; dueDate: string | null; notes: string | null; lineItems: Array<{ description: string; amount: number }>; shareToken: string } | null) => {
+      if (!inv) return;
+      setClientName(inv.clientName ?? "");
+      setClientEmail(inv.clientEmail ?? "");
+      setDueDate(inv.dueDate ?? "");
+      setNotes(inv.notes ?? "");
+      setLineItems(
+        inv.lineItems?.length
+          ? inv.lineItems.map(l => ({ description: l.description, amount: String(l.amount) }))
+          : [{ description: "Photography Services", amount: "" }]
+      );
+      setIsExisting(true);
+      setExistingToken(inv.shareToken);
+    }).catch(() => {});
+  }, [open, projectId]);
+
+  // Reset when closed
+  useEffect(() => {
+    if (!open) {
+      setClientName("");
+      setClientEmail("");
+      setDueDate("");
+      setNotes("");
+      setLineItems([{ description: "Photography Services", amount: "" }]);
+      setIsExisting(false);
+      setExistingToken(null);
+    }
+  }, [open]);
 
   const total = lineItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
 
@@ -265,12 +306,15 @@ function InvoiceDialog({ open, onClose, projectId, projectName }: InvoiceDialogP
       },
     }, {
       onSuccess: inv => {
-        const shareUrl = `${window.location.origin}/invoice/${inv.shareToken}`;
+        const shareUrl = `${window.location.origin}/invoice/${inv.shareToken ?? existingToken}`;
         navigator.clipboard.writeText(shareUrl).catch(() => {});
-        toast({ title: "Invoice created", description: "Share link copied to clipboard. Mark as Sent in the invoice to show it in the gallery." });
+        toast({
+          title: isExisting ? "Invoice updated" : "Invoice created",
+          description: "Share link copied to clipboard.",
+        });
         onClose();
       },
-      onError: () => toast({ title: "Failed to create invoice", variant: "destructive" }),
+      onError: () => toast({ title: isExisting ? "Failed to update invoice" : "Failed to create invoice", variant: "destructive" }),
     });
   };
 
@@ -280,7 +324,7 @@ function InvoiceDialog({ open, onClose, projectId, projectName }: InvoiceDialogP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Receipt className="w-4 h-4 text-primary" />
-            Create Invoice — {projectName}
+            {isExisting ? "Update Invoice" : "Create Invoice"} — {projectName}
           </DialogTitle>
         </DialogHeader>
 
@@ -349,7 +393,7 @@ function InvoiceDialog({ open, onClose, projectId, projectName }: InvoiceDialogP
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={createInvoice.isPending}>
             {createInvoice.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Receipt className="w-4 h-4 mr-2" />}
-            Create Invoice
+            {isExisting ? "Update Invoice" : "Create Invoice"}
           </Button>
         </DialogFooter>
       </DialogContent>

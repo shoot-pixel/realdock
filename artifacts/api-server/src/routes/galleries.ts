@@ -244,7 +244,9 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
   await db.update(galleriesTable).set({ viewCount: gallery.viewCount + 1 }).where(eq(galleriesTable.id, gallery.id));
 
   const [invoice] = await db.select().from(invoicesTable)
-    .where(and(eq(invoicesTable.projectId, project.id), ne(invoicesTable.status, "void")));
+    .where(and(eq(invoicesTable.projectId, project.id), ne(invoicesTable.status, "void")))
+    .orderBy(desc(invoicesTable.id))
+    .limit(1);
 
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   res.json({
