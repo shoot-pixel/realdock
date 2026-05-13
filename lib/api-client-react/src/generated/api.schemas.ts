@@ -737,6 +737,17 @@ export interface ListingPreview {
   generatedAt: string;
 }
 
+export interface GalleryEvent {
+  id: number;
+  galleryId: number;
+  galleryName: string;
+  projectName: string;
+  ipAddress: string;
+  eventType: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface GenerateListingPreviewParams {
   token: string;
 }

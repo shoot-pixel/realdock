@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, inArray, asc, ne, desc } from "drizzle-orm";
-import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable, usersTable, invoicesTable } from "@workspace/db";
+import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable, usersTable, invoicesTable, galleryEventsTable } from "@workspace/db";
 import { CreateGalleryBody, CreateGalleryParams, UpdateGalleryBody, UpdateGalleryParams, DeleteGalleryParams, GetGalleryParams, GetPublicGalleryParams, ListGalleriesParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
 import { randomBytes } from "crypto";
@@ -242,6 +242,34 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
 
   const { gallery, project, photographer, media } = result;
   await db.update(galleriesTable).set({ viewCount: gallery.viewCount + 1 }).where(eq(galleriesTable.id, gallery.id));
+
+  // Track new unique IP visit — fire-and-forget, non-blocking
+  void (async () => {
+    try {
+      const fwd = req.headers["x-forwarded-for"];
+      const ip = (typeof fwd === "string" ? fwd.split(",")[0] : fwd?.[0] ?? req.ip ?? "").trim();
+      if (ip) {
+        const [existing] = await db.select({ id: galleryEventsTable.id })
+          .from(galleryEventsTable)
+          .where(and(
+            eq(galleryEventsTable.galleryId, gallery.id),
+            eq(galleryEventsTable.ipAddress, ip),
+            eq(galleryEventsTable.eventType, "view"),
+          )).limit(1);
+        if (!existing) {
+          await db.insert(galleryEventsTable).values({
+            userId: project.userId,
+            galleryId: gallery.id,
+            projectId: project.id,
+            galleryName: gallery.name,
+            projectName: project.name,
+            ipAddress: ip,
+            eventType: "view",
+          });
+        }
+      }
+    } catch { /* non-fatal */ }
+  })();
 
   const [invoice] = await db.select().from(invoicesTable)
     .where(and(eq(invoicesTable.projectId, project.id), ne(invoicesTable.status, "void")))
@@ -512,6 +540,34 @@ router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
     res.status(403).json({ error: "Downloads are not allowed for this gallery." });
     return;
   }
+
+  // Track new unique IP download — fire-and-forget, non-blocking
+  void (async () => {
+    try {
+      const fwd = req.headers["x-forwarded-for"];
+      const ip = (typeof fwd === "string" ? fwd.split(",")[0] : fwd?.[0] ?? req.ip ?? "").trim();
+      if (ip) {
+        const [existing] = await db.select({ id: galleryEventsTable.id })
+          .from(galleryEventsTable)
+          .where(and(
+            eq(galleryEventsTable.galleryId, gallery.id),
+            eq(galleryEventsTable.ipAddress, ip),
+            eq(galleryEventsTable.eventType, "download"),
+          )).limit(1);
+        if (!existing) {
+          await db.insert(galleryEventsTable).values({
+            userId: project.userId,
+            galleryId: gallery.id,
+            projectId: project.id,
+            galleryName: gallery.name,
+            projectName: project.name,
+            ipAddress: ip,
+            eventType: "download",
+          });
+        }
+      }
+    } catch { /* non-fatal */ }
+  })();
 
   const safeProjectName = project.name
     .replace(/[^\w\s\-]/g, "")

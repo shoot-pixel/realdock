@@ -32,6 +32,8 @@ tags:
     description: Dashboard summaries
   - name: Storage
     description: Object storage upload and serving endpoints.
+  - name: notifications
+    description: Gallery view and download notifications
 
 paths:
   /storage/uploads/request-url:
@@ -995,6 +997,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Subscription"
+
+  /notifications:
+    get:
+      operationId: getNotifications
+      tags: [notifications]
+      summary: Get notifications for the current user
+      responses:
+        "200":
+          description: Notification list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GalleryEvent"
+
+  /notifications/read-all:
+    post:
+      operationId: markNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "204":
+          description: All notifications marked as read
 
 components:
   schemas:
@@ -2005,6 +2031,35 @@ components:
         - photoUrls
         - platforms
         - generatedAt
+
+    GalleryEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        galleryId:
+          type: integer
+        galleryName:
+          type: string
+        projectName:
+          type: string
+        ipAddress:
+          type: string
+        eventType:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - galleryId
+        - galleryName
+        - projectName
+        - ipAddress
+        - eventType
+        - isRead
+        - createdAt
 
     GenerateListingPreviewParams:
       type: object

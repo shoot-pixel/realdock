@@ -7,3 +7,4 @@ export * from "./galleries";
 export * from "./comments";
 export * from "./favorites";
 export * from "./invoices";
+export * from "./gallery_events";

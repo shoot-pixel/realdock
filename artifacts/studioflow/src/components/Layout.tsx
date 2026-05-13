@@ -1,4 +1,4 @@
-import { ReactNode, useState, memo, useCallback } from "react";
+import { ReactNode, useState, memo, useCallback, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -7,18 +7,130 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   LayoutDashboard, FolderOpen, Users, Settings, LogOut, Sun, Moon,
-  Menu, X, ChevronRight,
+  Menu, X, ChevronRight, Bell, Eye, Download as DownloadIcon,
 } from "lucide-react";
 import RealDockLogo from "@/components/RealDockLogo";
 import { cn } from "@/lib/utils";
 import {
   useGetStorageUsage,
+  useGetNotifications,
+  useMarkNotificationsRead,
+  getGetNotificationsQueryKey,
   getListProjectsQueryKey,
-  getGetProjectQueryKey,
   listProjects,
-  getProject,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(diff / 86400000);
+  if (m < 2) return "just now";
+  if (m < 60) return `${m}m ago`;
+  if (h < 24) return `${h}h ago`;
+  if (d < 7) return `${d}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const { data: notifications = [], refetch } = useGetNotifications({
+    query: { queryKey: getGetNotificationsQueryKey(), refetchInterval: 30_000 },
+  });
+  const { mutate: markRead } = useMarkNotificationsRead();
+
+  const unread = notifications.filter(n => !n.isRead).length;
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!panelRef.current?.contains(e.target as Node) && !btnRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const handleOpen = () => {
+    setOpen(o => !o);
+    if (!open && unread > 0) {
+      markRead(undefined, { onSuccess: () => void refetch() });
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        data-testid="button-notifications"
+        className="relative p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+      >
+        <Bell className="w-4 h-4" />
+        {unread > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center px-0.5 leading-none">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          ref={panelRef}
+          className="absolute right-0 top-full mt-2 w-80 bg-popover border border-border rounded-xl shadow-xl z-50 overflow-hidden"
+        >
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <p className="text-sm font-semibold text-foreground">Notifications</p>
+            {notifications.length > 0 && (
+              <span className="text-[11px] text-muted-foreground">{notifications.length} total</span>
+            )}
+          </div>
+
+          <div className="max-h-[360px] overflow-y-auto divide-y divide-border/50">
+            {notifications.length === 0 ? (
+              <div className="px-4 py-8 text-center">
+                <Bell className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No notifications yet</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-1">You'll be notified when someone views or downloads a gallery</p>
+              </div>
+            ) : (
+              notifications.map(n => (
+                <div key={n.id} className={cn("px-4 py-3 flex gap-3 items-start transition-colors hover:bg-muted/50", !n.isRead && "bg-primary/4")}>
+                  <div className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                    n.eventType === "download" ? "bg-amber-500/15 text-amber-500" : "bg-primary/12 text-primary"
+                  )}>
+                    {n.eventType === "download"
+                      ? <DownloadIcon className="w-3.5 h-3.5" />
+                      : <Eye className="w-3.5 h-3.5" />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] text-foreground font-medium leading-snug">
+                      {n.eventType === "download" ? "Gallery downloaded" : "Gallery viewed"}
+                    </p>
+                    <p className="text-[12px] text-muted-foreground truncate">{n.galleryName}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] text-muted-foreground/60 font-mono">{n.ipAddress}</span>
+                      <span className="text-[11px] text-muted-foreground/40">·</span>
+                      <span className="text-[11px] text-muted-foreground/60">{relativeTime(n.createdAt)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -235,6 +347,7 @@ export default function Layout({ children, title, breadcrumbs }: LayoutProps) {
             )}
           </div>
 
+          <NotificationBell />
           <button
             onClick={toggleDark}
             className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"

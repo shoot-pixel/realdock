@@ -12,6 +12,7 @@ import dashboardRouter from "./dashboard";
 import usersRouter from "./users";
 import storageRouter from "./storage";
 import invoicesRouter from "./invoices";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(clientsRouter);
 router.use(dashboardRouter);
 router.use(usersRouter);
 router.use(invoicesRouter);
+router.use(notificationsRouter);
 
 export default router;

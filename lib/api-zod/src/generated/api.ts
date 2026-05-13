@@ -1164,3 +1164,18 @@ export const GetSubscriptionResponse = zod.object({
   renewalDate: zod.string().nullish(),
   features: zod.array(zod.string()),
 });
+
+/**
+ * @summary Get notifications for the current user
+ */
+export const GetNotificationsResponseItem = zod.object({
+  id: zod.number(),
+  galleryId: zod.number(),
+  galleryName: zod.string(),
+  projectName: zod.string(),
+  ipAddress: zod.string(),
+  eventType: zod.string(),
+  isRead: zod.boolean(),
+  createdAt: zod.string(),
+});
+export const GetNotificationsResponse = zod.array(GetNotificationsResponseItem);
