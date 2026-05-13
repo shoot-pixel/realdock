@@ -4,32 +4,40 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 
-import NotFound from "@/pages/not-found";
-import Landing from "@/pages/landing";
-import LoginPage from "@/pages/login";
-import RegisterPage from "@/pages/register";
-import DashboardPage from "@/pages/dashboard";
-import ProjectsPage from "@/pages/projects";
-import EditProjectPage from "@/pages/edit-project";
-import ProjectDetailPage from "@/pages/project-detail";
-import NewProjectPage from "@/pages/new-project";
-import GalleryManagePage from "@/pages/gallery-manage";
-import GalleryPortalPage from "@/pages/gallery-portal";
-import InvoicePortalPage from "@/pages/invoice-portal";
-import ClientsPage from "@/pages/clients";
-import SettingsPage from "@/pages/settings";
+const NotFound       = lazy(() => import("@/pages/not-found"));
+const Landing        = lazy(() => import("@/pages/landing"));
+const LoginPage      = lazy(() => import("@/pages/login"));
+const RegisterPage   = lazy(() => import("@/pages/register"));
+const DashboardPage  = lazy(() => import("@/pages/dashboard"));
+const ProjectsPage   = lazy(() => import("@/pages/projects"));
+const EditProjectPage = lazy(() => import("@/pages/edit-project"));
+const ProjectDetailPage = lazy(() => import("@/pages/project-detail"));
+const NewProjectPage = lazy(() => import("@/pages/new-project"));
+const GalleryManagePage = lazy(() => import("@/pages/gallery-manage"));
+const GalleryPortalPage = lazy(() => import("@/pages/gallery-portal"));
+const InvoicePortalPage = lazy(() => import("@/pages/invoice-portal"));
+const ClientsPage    = lazy(() => import("@/pages/clients"));
+const SettingsPage   = lazy(() => import("@/pages/settings"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: 1000 * 60 * 5,  // 5 min — avoid re-fetching on every tab focus
-      gcTime: 1000 * 60 * 10,    // 10 min — keep data in memory across nav
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 15,
     },
   },
 });
+
+function PageSpinner() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+    </div>
+  );
+}
 
 function AuthTokenSync() {
   const { token } = useAuth();
@@ -63,38 +71,40 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Landing} />
-      <Route path="/login" component={LoginPage} />
-      <Route path="/register" component={RegisterPage} />
-      <Route path="/gallery/:token" component={GalleryPortalPage} />
-      <Route path="/invoice/:token" component={InvoicePortalPage} />
-      <Route path="/dashboard">
-        {() => <ProtectedRoute component={DashboardPage} />}
-      </Route>
-      <Route path="/projects/new">
-        {() => <ProtectedRoute component={NewProjectPage} />}
-      </Route>
-      <Route path="/projects/:id/edit">
-        {() => <ProtectedRoute component={EditProjectPage} />}
-      </Route>
-      <Route path="/projects/:id/gallery/:galleryId">
-        {() => <ProtectedRoute component={GalleryManagePage} />}
-      </Route>
-      <Route path="/projects/:id">
-        {() => <ProtectedRoute component={ProjectDetailPage} />}
-      </Route>
-      <Route path="/projects">
-        {() => <ProtectedRoute component={ProjectsPage} />}
-      </Route>
-      <Route path="/clients">
-        {() => <ProtectedRoute component={ClientsPage} />}
-      </Route>
-      <Route path="/settings">
-        {() => <ProtectedRoute component={SettingsPage} />}
-      </Route>
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageSpinner />}>
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/login" component={LoginPage} />
+        <Route path="/register" component={RegisterPage} />
+        <Route path="/gallery/:token" component={GalleryPortalPage} />
+        <Route path="/invoice/:token" component={InvoicePortalPage} />
+        <Route path="/dashboard">
+          {() => <ProtectedRoute component={DashboardPage} />}
+        </Route>
+        <Route path="/projects/new">
+          {() => <ProtectedRoute component={NewProjectPage} />}
+        </Route>
+        <Route path="/projects/:id/edit">
+          {() => <ProtectedRoute component={EditProjectPage} />}
+        </Route>
+        <Route path="/projects/:id/gallery/:galleryId">
+          {() => <ProtectedRoute component={GalleryManagePage} />}
+        </Route>
+        <Route path="/projects/:id">
+          {() => <ProtectedRoute component={ProjectDetailPage} />}
+        </Route>
+        <Route path="/projects">
+          {() => <ProtectedRoute component={ProjectsPage} />}
+        </Route>
+        <Route path="/clients">
+          {() => <ProtectedRoute component={ClientsPage} />}
+        </Route>
+        <Route path="/settings">
+          {() => <ProtectedRoute component={SettingsPage} />}
+        </Route>
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

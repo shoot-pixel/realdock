@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, memo, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -11,14 +11,142 @@ import {
 } from "lucide-react";
 import RealDockLogo from "@/components/RealDockLogo";
 import { cn } from "@/lib/utils";
-import { useGetStorageUsage } from "@workspace/api-client-react";
+import {
+  useGetStorageUsage,
+  getListProjectsQueryKey,
+  getGetProjectQueryKey,
+  listProjects,
+  getProject,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/projects", label: "Projects", icon: FolderOpen },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/projects",  label: "Projects",  icon: FolderOpen },
+  { href: "/clients",   label: "Clients",   icon: Users },
+  { href: "/settings",  label: "Settings",  icon: Settings },
 ];
+
+interface SidebarProps {
+  location: string;
+  user: { name?: string | null; email?: string | null; plan?: string | null } | null;
+  storagePercent: number;
+  storageLabel: string;
+  dark: boolean;
+  sidebarOpen: boolean;
+  onClose: () => void;
+  onToggleDark: () => void;
+  onLogout: () => void;
+  onNav: (href: string) => void;
+}
+
+const Sidebar = memo(function Sidebar({
+  location, user, storagePercent, storageLabel, dark,
+  sidebarOpen, onClose, onToggleDark, onLogout, onNav,
+}: SidebarProps) {
+  const queryClient = useQueryClient();
+  const initials = user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() ?? "U";
+
+  const prefetchProjects = useCallback(() => {
+    void queryClient.prefetchQuery({
+      queryKey: getListProjectsQueryKey(),
+      queryFn: () => listProjects(),
+      staleTime: 1000 * 60 * 5,
+    });
+  }, [queryClient]);
+
+  return (
+    <aside className={cn(
+      "fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar border-r border-sidebar-border transition-transform duration-300 lg:relative lg:translate-x-0",
+      "w-[200px]",
+      sidebarOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
+      <div className="px-5 pt-8 pb-7">
+        <RealDockLogo size="md" className="mb-1" />
+        <div className="flex items-center gap-2 pl-[38px]">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em]">Media Dashboard</p>
+          <span className="text-[9px] font-bold tracking-wider uppercase bg-primary/15 text-primary border border-primary/25 rounded px-1.5 py-0.5 leading-none">Beta</span>
+        </div>
+      </div>
+
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+        {navItems.map(item => {
+          const active = location.startsWith(item.href);
+          return (
+            <Link key={item.href} href={item.href}>
+              <div
+                data-testid={`nav-${item.label.toLowerCase()}`}
+                onClick={onClose}
+                onMouseEnter={item.href === "/projects" ? prefetchProjects : undefined}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13.5px] font-medium transition-all cursor-pointer border-l-2",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <item.icon className="w-3.5 h-3.5 shrink-0" />
+                {item.label}
+              </div>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="px-4 mb-3">
+        <div className="rounded-lg p-3 bg-muted/50 border border-border/60">
+          <div className="flex justify-between items-baseline mb-2">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-[0.08em] font-medium">
+              {user?.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : "Free"} Plan
+            </span>
+            <span className="text-[11px] text-muted-foreground">{Math.round(storagePercent)}%</span>
+          </div>
+          <div className="h-[3px] bg-border rounded-full mb-2">
+            <div
+              className="h-full bg-primary rounded-full transition-all"
+              style={{ width: `${storagePercent}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground">{storageLabel}</p>
+        </div>
+      </div>
+
+      <div className="px-4 pb-6 border-t border-sidebar-border pt-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              data-testid="user-menu-trigger"
+              className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-md hover:bg-sidebar-accent transition-colors text-left"
+            >
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[11px] font-bold shrink-0">
+                {initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-sidebar-accent-foreground truncate">{user?.name}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" className="w-52 mb-2">
+            <DropdownMenuItem onClick={() => onNav("/settings")}>
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onToggleDark}>
+              {dark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+              {dark ? "Light Mode" : "Dark Mode"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive" data-testid="button-logout">
+              <LogOut className="w-4 h-4 mr-2" />
+              Log Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </aside>
+  );
+});
 
 interface LayoutProps {
   children: ReactNode;
@@ -38,128 +166,45 @@ export default function Layout({ children, title, breadcrumbs }: LayoutProps) {
     ? `${storage.totalUsedMb < 1024 ? `${storage.totalUsedMb.toFixed(0)} MB` : `${(storage.totalUsedMb / 1024).toFixed(1)} GB`} of ${(storage.limitMb / 1024).toFixed(0)} GB`
     : "–";
 
-  const toggleDark = () => {
+  const toggleDark = useCallback(() => {
     document.documentElement.classList.toggle("dark");
     setDark(d => !d);
-  };
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
     setLocation("/");
-  };
+  }, [logout, setLocation]);
 
-  const initials = user?.name?.split(" ").map(n => n[0]).join("").toUpperCase() ?? "U";
+  const handleNav = useCallback((href: string) => {
+    setLocation(href);
+  }, [setLocation]);
 
-  const Sidebar = () => (
-    <aside className={cn(
-      "fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar border-r border-sidebar-border transition-transform duration-300 lg:relative lg:translate-x-0",
-      "w-[200px]",
-      sidebarOpen ? "translate-x-0" : "-translate-x-full"
-    )}>
-      {/* Logo */}
-      <div className="px-5 pt-8 pb-7">
-        <RealDockLogo size="md" className="mb-1" />
-        <div className="flex items-center gap-2 pl-[38px]">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em]">Media Dashboard</p>
-          <span className="text-[9px] font-bold tracking-wider uppercase bg-primary/15 text-primary border border-primary/25 rounded px-1.5 py-0.5 leading-none">Beta</span>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(item => {
-          const active = location.startsWith(item.href);
-          return (
-            <Link key={item.href} href={item.href}>
-              <div
-                data-testid={`nav-${item.label.toLowerCase()}`}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13.5px] font-medium transition-all cursor-pointer border-l-2",
-                  active
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <item.icon className="w-3.5 h-3.5 shrink-0" />
-                {item.label}
-              </div>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Storage */}
-      <div className="px-4 mb-3">
-        <div className="rounded-lg p-3 bg-muted/50 border border-border/60">
-          <div className="flex justify-between items-baseline mb-2">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-[0.08em] font-medium">
-              {user?.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : "Free"} Plan
-            </span>
-            <span className="text-[11px] text-muted-foreground">{Math.round(storagePercent)}%</span>
-          </div>
-          <div className="h-[3px] bg-border rounded-full mb-2">
-            <div
-              className="h-full bg-primary rounded-full transition-all"
-              style={{ width: `${storagePercent}%` }}
-            />
-          </div>
-          <p className="text-[11px] text-muted-foreground">{storageLabel}</p>
-        </div>
-      </div>
-
-      {/* User */}
-      <div className="px-4 pb-6 border-t border-sidebar-border pt-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              data-testid="user-menu-trigger"
-              className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-md hover:bg-sidebar-accent transition-colors text-left"
-            >
-              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[11px] font-bold shrink-0">
-                {initials}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium text-sidebar-accent-foreground truncate">{user?.name}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
-              </div>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" className="w-52 mb-2">
-            <DropdownMenuItem onClick={() => setLocation("/settings")}>
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={toggleDark}>
-              {dark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
-              {dark ? "Light Mode" : "Dark Mode"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive" data-testid="button-logout">
-              <LogOut className="w-4 h-4 mr-2" />
-              Log Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </aside>
-  );
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar />
+      <Sidebar
+        location={location}
+        user={user}
+        storagePercent={storagePercent}
+        storageLabel={storageLabel}
+        dark={dark}
+        sidebarOpen={sidebarOpen}
+        onClose={closeSidebar}
+        onToggleDark={toggleDark}
+        onLogout={handleLogout}
+        onNav={handleNav}
+      />
 
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeSidebar}
         />
       )}
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar */}
         <header className="flex items-center gap-4 px-6 py-3 border-b border-border bg-background/80 backdrop-blur-sm shrink-0">
           <button
             className="lg:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -199,7 +244,6 @@ export default function Layout({ children, title, breadcrumbs }: LayoutProps) {
           </button>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>

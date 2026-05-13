@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import Layout from "@/components/Layout";
-import { useListProjects, useDeleteProject, getListProjectsQueryKey } from "@workspace/api-client-react";
+import {
+  useListProjects, useDeleteProject, getListProjectsQueryKey,
+  getGetProjectQueryOptions, getListMediaQueryOptions,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,7 +15,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Plus, Search, MoreVertical, Pencil, Trash2, ImageIcon, Eye, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
   draft:     "badge-draft",
@@ -29,6 +30,8 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
   vacation: "Vacation",
   land: "Land",
 };
+
+const STALE = 1000 * 60 * 5;
 
 export default function ProjectsPage() {
   const [, setLocation] = useLocation();
@@ -54,6 +57,11 @@ export default function ProjectsPage() {
       },
     });
   };
+
+  const prefetchProject = useCallback((id: number) => {
+    void queryClient.prefetchQuery({ ...getGetProjectQueryOptions(id), staleTime: STALE });
+    void queryClient.prefetchQuery({ ...getListMediaQueryOptions(id), staleTime: STALE });
+  }, [queryClient]);
 
   return (
     <Layout title="Projects" breadcrumbs={[{ label: "Projects" }]}>
@@ -116,6 +124,7 @@ export default function ProjectsPage() {
                 key={project.id}
                 className="group overflow-hidden hover:shadow-lg transition-all cursor-pointer border-card-border"
                 data-testid={`card-project-${project.id}`}
+                onMouseEnter={() => prefetchProject(project.id)}
                 onClick={() => setLocation(`/projects/${project.id}`)}
               >
                 {/* Cover image with permanent dimmed underlay */}

@@ -4,6 +4,7 @@ import {
   useGetProject,
   useUpdateProject,
   useListClients,
+  useListMedia,
   getListProjectsQueryKey,
   getGetProjectQueryKey,
   Project,
@@ -17,10 +18,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ImageIcon, DollarSign, Home, Camera, MapPin } from "lucide-react";
+import { ArrowLeft, ImageIcon, DollarSign, Home, Camera, MapPin, Check } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   name: z.string().min(2, "Project name is required"),
@@ -64,8 +66,9 @@ function EditForm({ project, clients, projectId }: {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const updateProject = useUpdateProject();
+  const { data: media } = useListMedia(projectId);
 
-  const { register, handleSubmit, control, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: project.name,
@@ -116,17 +119,21 @@ function EditForm({ project, clients, projectId }: {
     );
   };
 
+  const photoMedia = media?.filter(m => m.mediaType === "photo") ?? [];
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
-      {/* ── Cover photo preview ──────────────────────────────── */}
+      {/* ── Cover photo ──────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-primary" /> Cover Photo
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
+
+          {/* Preview */}
           <div className="relative h-44 rounded-lg overflow-hidden bg-muted border border-border">
             {coverImageUrl ? (
               <>
@@ -149,17 +156,67 @@ function EditForm({ project, clients, projectId }: {
               </div>
             )}
           </div>
+
+          {/* Pick from uploaded photos */}
+          {photoMedia.length > 0 && (
+            <div>
+              <Label className="text-xs mb-2 block">Pick from project photos</Label>
+              <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1">
+                {photoMedia.map(m => {
+                  const thumb = m.thumbnailUrl ?? m.originalUrl ?? "";
+                  const full  = m.originalUrl ?? "";
+                  const isSelected = coverImageUrl === full;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setValue("coverImageUrl", full, { shouldDirty: true })}
+                      className={cn(
+                        "relative aspect-square rounded-md overflow-hidden border-2 transition-all focus:outline-none hover:opacity-90",
+                        isSelected
+                          ? "border-primary ring-1 ring-primary"
+                          : "border-transparent hover:border-border"
+                      )}
+                      title={m.filename}
+                    >
+                      <img
+                        src={thumb}
+                        alt={m.filename}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-3 h-3 text-primary-foreground" />
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Manual URL input */}
           <div>
-            <Label className="text-xs">Image URL</Label>
+            <Label className="text-xs">Or paste an image URL</Label>
             <Input
               {...register("coverImageUrl")}
               placeholder="https://images.unsplash.com/..."
               className="mt-1.5 text-sm font-mono"
               data-testid="input-cover-image-url"
             />
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Paste any public image URL. This will appear as the project tile cover and project header.
-            </p>
+            {coverImageUrl && (
+              <button
+                type="button"
+                onClick={() => setValue("coverImageUrl", "", { shouldDirty: true })}
+                className="text-[11px] text-muted-foreground hover:text-foreground mt-1 underline"
+              >
+                Clear cover image
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>
