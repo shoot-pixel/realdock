@@ -210,11 +210,11 @@ importers:
         specifier: ^10
         version: 10.5.0
       stripe:
-        specifier: ^18.0.0
-        version: 18.5.0(@types/node@25.3.5)
+        specifier: ^22.0.0
+        version: 22.1.1(@types/node@25.3.5)
       stripe-replit-sync:
-        specifier: ^0.0.11
-        version: 0.0.11(stripe@18.5.0(@types/node@25.3.5))
+        specifier: ^1.0.0
+        version: 1.0.0(stripe@22.1.1(@types/node@25.3.5))
       zod:
         specifier: 'catalog:'
         version: 3.25.76
@@ -3374,11 +3374,6 @@ packages:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
     engines: {node: '>=14.16'}
 
-  stripe-replit-sync@0.0.11:
-    resolution: {integrity: sha512-8aiW/ddC5wJ3DvsK2j+OMHtw+BFw1dVkrZWPC7u3WHjg1Z+tbiCOZVJDonS/LGDknhb3uja0GsZuG+p+2/t9VQ==}
-    peerDependencies:
-      stripe: '> 11'
-
   stripe-replit-sync@1.0.0:
     resolution: {integrity: sha512-Bkbih3k+IX/GugN8bKWNpwDiI2xkSLOAR+P34W7pjaR8fXyVay/QqztbrvbHZcU1JlfXncmBhuODY5TYY6DXlw==}
     peerDependencies:
@@ -6518,18 +6513,6 @@ snapshots:
   strip-final-newline@4.0.0: {}
 
   strip-json-comments@5.0.3: {}
-
-  stripe-replit-sync@0.0.11(stripe@18.5.0(@types/node@25.3.5)):
-    dependencies:
-      pg: 8.20.0
-      pg-node-migrations: 0.0.8
-      stripe: 18.5.0(@types/node@25.3.5)
-      ws: 8.20.1
-      yesql: 7.0.0
-    transitivePeerDependencies:
-      - bufferutil
-      - pg-native
-      - utf-8-validate
 
   stripe-replit-sync@1.0.0(stripe@22.1.1(@types/node@25.3.5)):
     dependencies:
