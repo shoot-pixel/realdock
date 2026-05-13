@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Lock } from "lucide-react";
 import RealDockLogo from "@/components/RealDockLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +70,11 @@ export default function LoginPage() {
             <RealDockLogo size="md" />
           </div>
 
+          <div className="flex items-center gap-2 mb-5">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase bg-primary/12 text-primary border border-primary/25 rounded-full px-3 py-1">
+              <Lock className="w-3 h-3" /> Invite Only Beta
+            </span>
+          </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Welcome back</h1>
           <p className="text-muted-foreground mb-8">Sign in to your studio account</p>
 
@@ -142,9 +147,9 @@ export default function LoginPage() {
           </Form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Don't have an account?{" "}
+            Have an invite code?{" "}
             <Link href="/register">
-              <span className="text-primary hover:underline cursor-pointer font-medium">Create account</span>
+              <span className="text-primary hover:underline cursor-pointer font-medium">Request beta access</span>
             </Link>
           </p>
         </div>

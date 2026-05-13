@@ -59,7 +59,10 @@ export default function Layout({ children, title, breadcrumbs }: LayoutProps) {
       {/* Logo */}
       <div className="px-5 pt-8 pb-7">
         <RealDockLogo size="md" className="mb-1" />
-        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] pl-[38px]">Media Dashboard</p>
+        <div className="flex items-center gap-2 pl-[38px]">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em]">Media Dashboard</p>
+          <span className="text-[9px] font-bold tracking-wider uppercase bg-primary/15 text-primary border border-primary/25 rounded px-1.5 py-0.5 leading-none">Beta</span>
+        </div>
       </div>
 
       {/* Nav */}
