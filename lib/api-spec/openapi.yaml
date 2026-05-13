@@ -1214,6 +1214,10 @@ components:
           enum: [draft, active, delivered, archived, completed, paid]
         coverImageUrl:
           type: ["string", "null"]
+        listingPrice:
+          type: ["string", "null"]
+        shootFee:
+          type: ["string", "null"]
         mediaCount:
           type: integer
         shootDate:
@@ -1255,6 +1259,10 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        listingPrice:
+          type: ["string", "null"]
+        shootFee:
+          type: ["string", "null"]
       required:
         - name
         - address
@@ -1282,6 +1290,10 @@ components:
         notes:
           type: ["string", "null"]
         coverImageUrl:
+          type: ["string", "null"]
+        listingPrice:
+          type: ["string", "null"]
+        shootFee:
           type: ["string", "null"]
 
     ProjectStats:

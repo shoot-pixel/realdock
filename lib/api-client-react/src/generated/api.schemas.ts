@@ -157,6 +157,10 @@ export interface Project {
   status: ProjectStatus;
   /** @nullable */
   coverImageUrl?: string | null;
+  /** @nullable */
+  listingPrice?: string | null;
+  /** @nullable */
+  shootFee?: string | null;
   mediaCount: number;
   /** @nullable */
   shootDate?: string | null;
@@ -191,6 +195,10 @@ export interface CreateProjectBody {
   deliveryDate?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  listingPrice?: string | null;
+  /** @nullable */
+  shootFee?: string | null;
 }
 
 export type UpdateProjectBodyPropertyType =
@@ -231,6 +239,10 @@ export interface UpdateProjectBody {
   notes?: string | null;
   /** @nullable */
   coverImageUrl?: string | null;
+  /** @nullable */
+  listingPrice?: string | null;
+  /** @nullable */
+  shootFee?: string | null;
 }
 
 export interface ProjectStats {

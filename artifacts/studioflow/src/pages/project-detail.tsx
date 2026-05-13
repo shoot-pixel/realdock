@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import {
   ImageIcon, Zap, Share2, Plus, ExternalLink, Eye as EyeIcon, Upload,
-  Trash2, RefreshCw, Loader2, Star, GripVertical, Receipt, X, AlertTriangle,
+  Trash2, RefreshCw, Loader2, Star, GripVertical, Receipt, X, AlertTriangle, Pencil,
 } from "lucide-react";
 
 const STATUS_OPTIONS = [
@@ -545,6 +545,15 @@ export default function ProjectDetailPage() {
                 <p className="text-white/70 text-sm">{project.address}</p>
               </div>
               <div className="flex flex-wrap gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  onClick={() => setLocation(`/projects/${projectId}/edit`)}
+                  data-testid="button-edit-project"
+                >
+                  <Pencil className="w-4 h-4 mr-1.5" /> Edit
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"

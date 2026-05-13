@@ -171,6 +171,8 @@ export const ListProjectsResponseItem = zod.object({
     "paid",
   ]),
   coverImageUrl: zod.string().nullish(),
+  listingPrice: zod.string().nullish(),
+  shootFee: zod.string().nullish(),
   mediaCount: zod.number(),
   shootDate: zod.string().nullish(),
   deliveryDate: zod.string().nullish(),
@@ -197,6 +199,8 @@ export const CreateProjectBody = zod.object({
   shootDate: zod.string().nullish(),
   deliveryDate: zod.string().nullish(),
   notes: zod.string().nullish(),
+  listingPrice: zod.string().nullish(),
+  shootFee: zod.string().nullish(),
 });
 
 /**
@@ -228,6 +232,8 @@ export const GetProjectResponse = zod.object({
     "paid",
   ]),
   coverImageUrl: zod.string().nullish(),
+  listingPrice: zod.string().nullish(),
+  shootFee: zod.string().nullish(),
   mediaCount: zod.number(),
   shootDate: zod.string().nullish(),
   deliveryDate: zod.string().nullish(),
@@ -257,6 +263,8 @@ export const UpdateProjectBody = zod.object({
   deliveryDate: zod.string().nullish(),
   notes: zod.string().nullish(),
   coverImageUrl: zod.string().nullish(),
+  listingPrice: zod.string().nullish(),
+  shootFee: zod.string().nullish(),
 });
 
 export const UpdateProjectResponse = zod.object({
@@ -281,6 +289,8 @@ export const UpdateProjectResponse = zod.object({
     "paid",
   ]),
   coverImageUrl: zod.string().nullish(),
+  listingPrice: zod.string().nullish(),
+  shootFee: zod.string().nullish(),
   mediaCount: zod.number(),
   shootDate: zod.string().nullish(),
   deliveryDate: zod.string().nullish(),

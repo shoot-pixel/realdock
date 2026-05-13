@@ -12,6 +12,7 @@ import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import DashboardPage from "@/pages/dashboard";
 import ProjectsPage from "@/pages/projects";
+import EditProjectPage from "@/pages/edit-project";
 import ProjectDetailPage from "@/pages/project-detail";
 import NewProjectPage from "@/pages/new-project";
 import GalleryManagePage from "@/pages/gallery-manage";
@@ -73,6 +74,9 @@ function Router() {
       </Route>
       <Route path="/projects/new">
         {() => <ProtectedRoute component={NewProjectPage} />}
+      </Route>
+      <Route path="/projects/:id/edit">
+        {() => <ProtectedRoute component={EditProjectPage} />}
       </Route>
       <Route path="/projects/:id/gallery/:galleryId">
         {() => <ProtectedRoute component={GalleryManagePage} />}

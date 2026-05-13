@@ -14,6 +14,8 @@ export const projectsTable = pgTable("projects", {
   propertyType: propertyTypeEnum("property_type").notNull().default("residential"),
   status: projectStatusEnum("status").notNull().default("draft"),
   coverImageUrl: text("cover_image_url"),
+  listingPrice: text("listing_price"),
+  shootFee: text("shoot_fee"),
   shootDate: text("shoot_date"),
   deliveryDate: text("delivery_date"),
   notes: text("notes"),
