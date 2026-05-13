@@ -297,53 +297,81 @@ router.post("/gallery/:token/listing-preview", async (req, res): Promise<void> =
   }
 
   const { gallery, project, media } = result;
-  const photoUrls = media.slice(0, 10).map(m => m.thumbnailUrl ?? m.originalUrl);
+  const photoUrls = media.filter(m => m.mediaType === "photo").slice(0, 10).map(m => m.originalUrl ?? m.thumbnailUrl).filter(Boolean) as string[];
+  const allPhotoUrls = photoUrls.length > 0 ? photoUrls : media.slice(0, 10).map(m => m.thumbnailUrl ?? m.originalUrl).filter(Boolean) as string[];
   const propertyName = project.name;
   const address = project.address ?? "Luxury Property";
+  const propertyType = project.propertyType ?? "residential";
+  const existingListingPrice = project.listingPrice;
 
   const openai = getOpenAIClient();
 
-  let headline = `Stunning ${propertyName} — Luxury Living at Its Finest`;
-  let description = `Welcome to ${propertyName} at ${address}. This exceptional property showcases impeccable craftsmanship and premium finishes throughout. Floor-to-ceiling windows flood the space with natural light, while the open-concept layout creates a seamless flow between living areas. The gourmet kitchen features top-of-the-line appliances and custom cabinetry. The primary suite offers a spa-inspired bath and walk-in closet. Entertain effortlessly on the private terrace with panoramic views. A rare opportunity to own one of the most coveted addresses in the area.`;
+  let headline = `${propertyName} — An Exceptional Residence`;
+  let description = `Nestled at ${address}, this remarkable ${propertyType} property offers an unparalleled living experience. Thoughtfully designed spaces flow seamlessly from room to room, with premium finishes and meticulous attention to detail throughout. The gourmet kitchen anchors the main living area, while the primary suite provides a private retreat with spa-inspired amenities. Lush outdoor spaces complete this rare offering in one of the area's most sought-after locations.`;
   let highlights = [
-    "Professionally photographed — magazine-quality imagery",
-    "Open-concept living with premium finishes throughout",
-    "Chef's kitchen with top-of-the-line appliances",
+    "Premium finishes and custom millwork throughout",
+    "Chef's kitchen with high-end appliances and custom cabinetry",
     "Spa-inspired primary suite with walk-in closet",
-    "Private outdoor entertaining areas",
-    "Exceptional natural light throughout",
+    "Abundant natural light with expansive windows",
+    "Private outdoor entertaining and landscaped grounds",
+    "Prime location in a coveted neighborhood",
   ];
-  let suggestedPrice = "$2,450,000";
+  let suggestedPrice = existingListingPrice
+    ? (existingListingPrice.startsWith("$") ? existingListingPrice : `$${existingListingPrice}`)
+    : "$2,450,000";
 
   if (openai) {
     try {
-      const prompt = `You are a luxury real estate copywriter. Generate a compelling property listing for:
+      const visionPhotos = allPhotoUrls.slice(0, 4);
+
+      const systemPrompt = `You are an elite luxury real estate copywriter for a top agency. Your writing is sophisticated, evocative, and buyer-focused.
+
+ABSOLUTE RULES — violations are unacceptable:
+- NEVER mention photography, photos, cameras, imagery, videography, or any media services
+- NEVER reference how the property was documented or marketed
+- Write ONLY about the property itself: its spaces, finishes, location, and lifestyle
+- Descriptions must make a buyer want to live there, not comment on how the listing was created
+- Draw on the address/location to weave in neighborhood lifestyle and local context`;
+
+      const userPrompt = `Generate a luxury real estate listing for this property.
+
 Property Name: ${propertyName}
 Address: ${address}
-Number of Photos: ${media.length}
+Property Type: ${propertyType}${existingListingPrice ? `\nListing Price: $${existingListingPrice}` : ""}
 
-Return JSON with this exact structure:
+${visionPhotos.length > 0 ? "I'm sharing interior and exterior photos of the property. Study the architectural details, finishes, spaces, and outdoor areas visible in the images to write an accurate, specific listing." : ""}
+
+Return ONLY valid JSON with this exact structure:
 {
-  "headline": "short compelling headline (max 12 words)",
-  "description": "3-4 sentence luxury real estate listing description highlighting the property's best features",
-  "highlights": ["6 bullet point features in luxury real estate style"],
-  "suggestedPrice": "a realistic price in the format $X,XXX,XXX based on a luxury property"
+  "headline": "Compelling headline max 10 words — specific to this property, never generic, no photography references",
+  "description": "3-4 sentences describing the property's spaces, finishes, and lifestyle based on the location. Evocative and buyer-focused. Never mention photography.",
+  "highlights": ["6 specific, concrete property features observed from the space and location — no photography, no generic filler"],
+  "suggestedPrice": "${existingListingPrice ? `$${existingListingPrice}` : "Realistic price in format $X,XXX,XXX based on property type and location"}"
 }`;
 
+      type MessageContent = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "low" } };
+      const userContent: MessageContent[] = [{ type: "text", text: userPrompt }];
+      for (const url of visionPhotos) {
+        userContent.push({ type: "image_url", image_url: { url, detail: "low" } });
+      }
+
       const completion = await openai.chat.completions.create({
-        model: "gpt-5-mini",
-        messages: [{ role: "user", content: prompt }],
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
         response_format: { type: "json_object" },
-        max_tokens: 600,
+        max_tokens: 700,
       });
 
       const content = completion.choices[0]?.message?.content;
       if (content) {
         const parsed = JSON.parse(content);
-        if (parsed.headline) headline = parsed.headline;
-        if (parsed.description) description = parsed.description;
-        if (Array.isArray(parsed.highlights)) highlights = parsed.highlights;
-        if (parsed.suggestedPrice) suggestedPrice = parsed.suggestedPrice;
+        if (typeof parsed.headline === "string" && parsed.headline.trim()) headline = parsed.headline;
+        if (typeof parsed.description === "string" && parsed.description.trim()) description = parsed.description;
+        if (Array.isArray(parsed.highlights) && parsed.highlights.length > 0) highlights = parsed.highlights;
+        if (typeof parsed.suggestedPrice === "string" && parsed.suggestedPrice.trim()) suggestedPrice = parsed.suggestedPrice;
       }
     } catch (err) {
       // fall through to defaults
@@ -360,7 +388,7 @@ Return JSON with this exact structure:
     bedrooms: null,
     bathrooms: null,
     squareFeet: null,
-    photoUrls,
+    photoUrls: allPhotoUrls,
     platforms: [
       { name: "Zillow", tagline: "Find your way home" },
       { name: "Redfin", tagline: "Real estate, built for you" },
