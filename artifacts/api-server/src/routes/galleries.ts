@@ -478,8 +478,10 @@ router.post("/gallery/:token/social-post", async (req, res): Promise<void> => {
     }
   }
 
+  const agentName = photographer?.name ?? "Your Agent";
+
   res.setHeader("Cache-Control", "no-store");
-  res.json({ tagline, address, projectName: project.name, coverImageUrl, companyName });
+  res.json({ tagline, address, projectName: project.name, coverImageUrl, agentName });
 });
 
 router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {

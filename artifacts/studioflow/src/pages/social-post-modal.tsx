@@ -7,7 +7,7 @@ interface SocialPostData {
   address: string;
   projectName: string;
   coverImageUrl: string | null;
-  companyName: string;
+  agentName: string;
 }
 
 interface SocialPostModalProps {
@@ -115,9 +115,6 @@ function drawPost(
   ctx.textBaseline = "alphabetic";
 
   // ── TOP — "COMING SOON" block ─────────────────────────────────────────────
-  const lineY1 = 120;
-  const lineY2 = 290;
-
   // Gold decorative lines
   const drawLine = (y: number, alpha = 0.75) => {
     ctx.save();
@@ -130,13 +127,17 @@ function drawPost(
     ctx.restore();
   };
 
-  drawLine(lineY1);
-  drawLine(lineY2);
-
-  // "COMING SOON"
+  // Draw "COMING" and "SOON" as two separate lines — avoids kerning/spacing bugs
   ctx.fillStyle = "#FFFFFF";
-  ctx.font = `bold 96px 'Playfair Display', Georgia, serif`;
-  fillSpaced(ctx, "COMING SOON", W / 2, 228, 7);
+  ctx.font = `bold 104px 'Playfair Display', Georgia, serif`;
+  // Measure each word to confirm it fits, then draw
+  const comingY = 210;
+  const soonY = 330;
+  ctx.fillText("COMING", W / 2, comingY);
+  ctx.fillText("SOON", W / 2, soonY);
+
+  drawLine(130);   // above "COMING"
+  drawLine(368);   // below "SOON"
 
   // ── BOTTOM block ──────────────────────────────────────────────────────────
   const maxW = W - PAD * 2;
@@ -166,7 +167,7 @@ function drawPost(
   const presentedY = tagStartY + tagLines.length * tagLineH + 80;
   ctx.fillStyle = "rgba(255,255,255,0.45)";
   ctx.font = `400 30px 'Playfair Display', Georgia, serif`;
-  ctx.fillText(`Presented by ${data.companyName}`, W / 2, presentedY);
+  ctx.fillText(`Presented by ${data.agentName}`, W / 2, presentedY);
 }
 
 export default function SocialPostModal({ token, onClose }: SocialPostModalProps) {
