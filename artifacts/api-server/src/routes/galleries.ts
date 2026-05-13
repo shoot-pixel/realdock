@@ -462,12 +462,20 @@ router.post("/gallery/:token/social-post", async (req, res): Promise<void> => {
     media.find(m => m.mediaType === "photo")?.originalUrl ??
     media[0]?.originalUrl ??
     null;
-  const companyName =
-    (gallery.companyName as string | null | undefined) ??
-    (photographer as { businessName?: string } | null)?.businessName ??
-    "RealDock";
 
-  let tagline = "A rare opportunity to own an exceptional residence in a coveted location.";
+  const body = req.body as { prompt?: string; count?: number } | undefined;
+  const customPrompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
+  const count = typeof body?.count === "number" ? Math.min(Math.max(body.count, 1), 5) : 5;
+
+  const defaultTaglines = [
+    "A rare opportunity to own an exceptional residence in a coveted location.",
+    "Where luxury meets lifestyle — an address like no other.",
+    "Timeless elegance awaits in this extraordinary property.",
+    "An exceptional home for those who demand the very best.",
+    "Discover the pinnacle of refined living.",
+  ];
+
+  let taglines: string[] = defaultTaglines.slice(0, count);
 
   const openai = getOpenAIClient();
   if (openai) {
@@ -476,10 +484,22 @@ router.post("/gallery/:token/social-post", async (req, res): Promise<void> => {
         | { type: "text"; text: string }
         | { type: "image_url"; image_url: { url: string; detail: "low" } };
 
+      const toneList = count === 1
+        ? "evocative and aspirational"
+        : [
+            "(1) elegant & aspirational",
+            "(2) bold & dramatic",
+            "(3) intimate & lifestyle-focused",
+            "(4) exclusive & prestigious",
+            "(5) poetic & evocative",
+          ].slice(0, count).join(", ");
+
       const userContent: MsgContent[] = [
         {
           type: "text",
-          text: `Write a single luxury real estate tagline for a "COMING SOON" social media post. Property address: ${address}. Requirements: evocative and aspirational, under 12 words, no quotes, absolutely no mention of photography cameras or media — only describe the lifestyle and opportunity.`,
+          text: count === 1
+            ? `Write a single luxury real estate tagline for a "COMING SOON" social media post. Property address: ${address}.${customPrompt ? ` Direction: ${customPrompt}.` : ""} Under 12 words, no quotes, no photography/camera references — evoke lifestyle and opportunity only.`
+            : `Write exactly ${count} different luxury real estate taglines for a "COMING SOON" social media post. Property address: ${address}.${customPrompt ? ` Direction: ${customPrompt}.` : ""} Return ONLY the taglines numbered 1–${count}, one per line. Distinct tones: ${toneList}. Under 12 words each, no quotes, no photography/camera references — evoke lifestyle and opportunity only.`,
         },
       ];
       if (coverImageUrl) {
@@ -492,17 +512,26 @@ router.post("/gallery/:token/social-post", async (req, res): Promise<void> => {
           {
             role: "system",
             content:
-              "You are a luxury real estate copywriter. Write short, evocative taglines for 'COMING SOON' social media posts. Respond with ONLY the tagline — no explanation, no quotes, no hashtags.",
+              "You are a luxury real estate copywriter. Write short, evocative taglines for 'COMING SOON' social media posts. When given multiple, return them numbered 1–N, one per line, nothing else.",
           },
           { role: "user", content: userContent },
         ],
-        max_tokens: 60,
+        max_tokens: count === 1 ? 60 : 250,
       });
 
-      const raw = completion.choices[0]?.message?.content?.trim();
-      if (raw) tagline = raw.replace(/^["']|["']$/g, "");
+      const raw = completion.choices[0]?.message?.content?.trim() ?? "";
+      const parsed = raw
+        .split("\n")
+        .map(l => l.replace(/^\d+[.)]\s*/, "").replace(/^["']|["']$/g, "").trim())
+        .filter(Boolean)
+        .slice(0, count);
+
+      if (parsed.length > 0) {
+        taglines = parsed;
+        while (taglines.length < count) taglines.push(defaultTaglines[taglines.length] ?? defaultTaglines[0]);
+      }
     } catch {
-      // fall through to default
+      // fall through to defaults
     }
   }
 
@@ -514,7 +543,7 @@ router.post("/gallery/:token/social-post", async (req, res): Promise<void> => {
   const clientName = invoice?.clientName || null;
 
   res.setHeader("Cache-Control", "no-store");
-  res.json({ tagline, address, projectName: project.name, coverImageUrl, clientName });
+  res.json({ taglines, address, projectName: project.name, coverImageUrl, clientName });
 });
 
 router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
