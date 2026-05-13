@@ -13,6 +13,7 @@ import usersRouter from "./users";
 import storageRouter from "./storage";
 import invoicesRouter from "./invoices";
 import notificationsRouter from "./notifications";
+import stripeRouter from "./stripe";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(dashboardRouter);
 router.use(usersRouter);
 router.use(invoicesRouter);
 router.use(notificationsRouter);
+router.use(stripeRouter);
 
 export default router;

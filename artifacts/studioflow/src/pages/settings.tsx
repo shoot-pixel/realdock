@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/lib/auth-context";
 import { useUpdateCurrentUser } from "@workspace/api-client-react";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { UserIcon, CreditCard, Zap, Shield, Check } from "lucide-react";
+import { UserIcon, CreditCard, Zap, Shield, Check, Loader2, ExternalLink } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,7 +28,8 @@ const PLANS = [
     storage: "5 GB",
     credits: "20 AI credits/mo",
     features: ["5 active projects", "Public galleries", "Basic AI tools"],
-    value: "free",
+    value: "free" as const,
+    planKey: null,
   },
   {
     name: "Pro",
@@ -37,7 +38,8 @@ const PLANS = [
     storage: "50 GB",
     credits: "200 AI credits/mo",
     features: ["Unlimited projects", "Custom gallery domains", "Priority processing", "Client analytics"],
-    value: "pro",
+    value: "pro" as const,
+    planKey: "pro" as const,
     popular: true,
   },
   {
@@ -47,7 +49,8 @@ const PLANS = [
     storage: "500 GB",
     credits: "2,000 AI credits/mo",
     features: ["Everything in Pro", "White-label portal", "Team members", "API access", "Dedicated support"],
-    value: "studio",
+    value: "studio" as const,
+    planKey: "studio" as const,
   },
 ];
 
@@ -55,6 +58,20 @@ export default function SettingsPage() {
   const { user, login, token } = useAuth();
   const { toast } = useToast();
   const updateUser = useUpdateCurrentUser();
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
+
+  // Show toast on return from Stripe Checkout and clean up the URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("checkout");
+    if (result === "success") {
+      toast({ title: "Subscription activated!", description: "Your plan has been updated." });
+    }
+    if (result) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [toast]);
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -81,6 +98,54 @@ export default function SettingsPage() {
       },
     });
   };
+
+  const handleSubscribe = async (planKey: "pro" | "studio") => {
+    setCheckingOut(planKey);
+    try {
+      const resp = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ planKey }),
+      });
+      const data = await resp.json() as { url?: string; error?: string; hint?: string };
+      if (!resp.ok) {
+        toast({
+          title: "Checkout unavailable",
+          description: data.hint ?? data.error ?? "Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (data.url) window.location.href = data.url;
+    } catch {
+      toast({ title: "Network error", description: "Could not reach the server.", variant: "destructive" });
+    } finally {
+      setCheckingOut(null);
+    }
+  };
+
+  const handleManageBilling = async () => {
+    setOpeningPortal(true);
+    try {
+      const resp = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await resp.json() as { url?: string; error?: string };
+      if (data.url) window.location.href = data.url;
+      else toast({ title: "Could not open billing portal", variant: "destructive" });
+    } catch {
+      toast({ title: "Network error", variant: "destructive" });
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
+
+  const currentPlan = user?.plan ?? "free";
+  const hasPaidPlan = currentPlan !== "free";
 
   return (
     <Layout title="Settings" breadcrumbs={[{ label: "Settings" }]}>
@@ -122,15 +187,33 @@ export default function SettingsPage() {
 
         {/* Subscription */}
         <div>
-          <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-            <CreditCard className="w-4 h-4" /> Subscription
-          </h2>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <CreditCard className="w-4 h-4" /> Subscription
+            </h2>
+            {hasPaidPlan && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground text-xs"
+                onClick={handleManageBilling}
+                disabled={openingPortal}
+              >
+                {openingPortal
+                  ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  : <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                }
+                Manage Billing
+              </Button>
+            )}
+          </div>
           <p className="text-muted-foreground text-sm mb-4">
-            You are on the <strong>{user?.plan ?? "free"}</strong> plan.
+            You are on the <strong>{currentPlan}</strong> plan.
           </p>
           <div className="grid sm:grid-cols-3 gap-4">
             {PLANS.map(plan => {
-              const isCurrentPlan = (user?.plan ?? "free") === plan.value;
+              const isCurrentPlan = currentPlan === plan.value;
+              const isLoading = checkingOut === plan.planKey;
               return (
                 <Card
                   key={plan.value}
@@ -165,10 +248,18 @@ export default function SettingsPage() {
                       variant={isCurrentPlan ? "secondary" : plan.popular ? "default" : "outline"}
                       size="sm"
                       className="w-full"
-                      disabled={isCurrentPlan}
+                      disabled={isCurrentPlan || !plan.planKey || isLoading}
+                      onClick={() => plan.planKey && handleSubscribe(plan.planKey)}
                       data-testid={`button-select-plan-${plan.value}`}
                     >
-                      {isCurrentPlan ? "Current Plan" : plan.price === "$0" ? "Downgrade" : "Upgrade"}
+                      {isLoading
+                        ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Redirecting…</>
+                        : isCurrentPlan
+                          ? "Current Plan"
+                          : plan.planKey
+                            ? (currentPlan !== "free" ? "Switch Plan" : "Upgrade")
+                            : "Downgrade"
+                      }
                     </Button>
                   </CardContent>
                 </Card>

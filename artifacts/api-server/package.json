@@ -20,6 +20,9 @@
     "express": "^5",
     "google-auth-library": "^10.6.2",
     "openai": "^6.34.0",
+    "stripe": "^18.0.0",
+    "stripe-replit-sync": "^0.0.11",
+    "zod": "catalog:",
     "pino": "^9",
     "pino-http": "^10"
   },
