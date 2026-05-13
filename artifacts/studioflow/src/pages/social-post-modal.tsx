@@ -115,8 +115,8 @@ function drawPost(
   ctx.textBaseline = "alphabetic";
 
   // ── TOP — "COMING SOON" block ─────────────────────────────────────────────
-  const lineY1 = 148;
-  const lineY2 = 300;
+  const lineY1 = 120;
+  const lineY2 = 290;
 
   // Gold decorative lines
   const drawLine = (y: number, alpha = 0.75) => {
@@ -133,15 +133,10 @@ function drawPost(
   drawLine(lineY1);
   drawLine(lineY2);
 
-  // Small "PRESENTED BY" label above "COMING SOON"
-  ctx.fillStyle = `rgba(201,169,110,0.80)`;
-  ctx.font = `500 26px Inter, -apple-system, sans-serif`;
-  fillSpaced(ctx, "PRESENTED BY", W / 2, lineY1 - 22, 4);
-
   // "COMING SOON"
   ctx.fillStyle = "#FFFFFF";
   ctx.font = `bold 96px 'Playfair Display', Georgia, serif`;
-  fillSpaced(ctx, "COMING SOON", W / 2, 244, 7);
+  fillSpaced(ctx, "COMING SOON", W / 2, 228, 7);
 
   // ── BOTTOM block ──────────────────────────────────────────────────────────
   const maxW = W - PAD * 2;
@@ -167,27 +162,11 @@ function drawPost(
     ctx.fillText(tagLines[i], W / 2, tagStartY + i * tagLineH);
   }
 
-  // Short divider
-  const divY = tagStartY + tagLines.length * tagLineH + 72;
-  const divHalfW = 120;
-  ctx.save();
-  ctx.strokeStyle = `rgba(201,169,110,0.40)`;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(W / 2 - divHalfW, divY);
-  ctx.lineTo(W / 2 + divHalfW, divY);
-  ctx.stroke();
-  ctx.restore();
-
-  // Company name
-  ctx.fillStyle = "rgba(255,255,255,0.50)";
-  ctx.font = `500 28px Inter, -apple-system, sans-serif`;
-  fillSpaced(ctx, data.companyName.toUpperCase(), W / 2, divY + 56, 3.5);
-
-  // Tiny RealDock watermark at the very bottom
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  ctx.font = `400 22px Inter, -apple-system, sans-serif`;
-  ctx.fillText("Powered by RealDock", W / 2, H - 48);
+  // "Presented by [Agent Name]"
+  const presentedY = tagStartY + tagLines.length * tagLineH + 80;
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.font = `400 30px 'Playfair Display', Georgia, serif`;
+  ctx.fillText(`Presented by ${data.companyName}`, W / 2, presentedY);
 }
 
 export default function SocialPostModal({ token, onClose }: SocialPostModalProps) {
