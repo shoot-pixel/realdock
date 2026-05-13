@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, inArray, asc, ne } from "drizzle-orm";
+import { eq, and, inArray, asc, ne, desc } from "drizzle-orm";
 import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable, usersTable, invoicesTable } from "@workspace/db";
 import { CreateGalleryBody, CreateGalleryParams, UpdateGalleryBody, UpdateGalleryParams, DeleteGalleryParams, GetGalleryParams, GetPublicGalleryParams, ListGalleriesParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
@@ -53,6 +53,22 @@ async function getGalleryWithMediaIds(gallery: typeof galleriesTable.$inferSelec
     mediaIds: gm.map(m => m.mediaId),
   };
 }
+
+router.get("/galleries", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
+  const userId = req.userId!;
+  const userProjects = await db.select({ id: projectsTable.id }).from(projectsTable)
+    .where(eq(projectsTable.userId, userId));
+  if (userProjects.length === 0) {
+    res.json([]);
+    return;
+  }
+  const projectIds = userProjects.map(p => p.id);
+  const galleries = await db.select().from(galleriesTable)
+    .where(inArray(galleriesTable.projectId, projectIds))
+    .orderBy(desc(galleriesTable.createdAt))
+    .limit(10);
+  res.json(galleries.map(galleryRow));
+});
 
 router.get("/projects/:projectId/galleries", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   const params = ListGalleriesParams.safeParse(req.params);

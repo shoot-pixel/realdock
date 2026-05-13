@@ -610,6 +610,21 @@ paths:
                 $ref: "#/components/schemas/AiJob"
 
   # Galleries / Share Links
+  /galleries:
+    get:
+      operationId: listRecentGalleries
+      tags: [galleries]
+      summary: List recent galleries across all user projects
+      responses:
+        "200":
+          description: Recent galleries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GallerySummary"
+
   /projects/{projectId}/galleries:
     get:
       operationId: listGalleries
@@ -1466,6 +1481,36 @@ components:
           additionalProperties: true
       required:
         - jobType
+
+    GallerySummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        name:
+          type: string
+        shareToken:
+          type: string
+        visibility:
+          type: string
+          enum: [private, link_only, public]
+        viewCount:
+          type: integer
+        downloadCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - projectId
+        - name
+        - shareToken
+        - visibility
+        - viewCount
+        - downloadCount
+        - createdAt
 
     Gallery:
       type: object

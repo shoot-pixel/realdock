@@ -706,6 +706,23 @@ export const CancelAiJobResponse = zod.object({
 });
 
 /**
+ * @summary List recent galleries across all user projects
+ */
+export const ListRecentGalleriesResponseItem = zod.object({
+  id: zod.number(),
+  projectId: zod.number(),
+  name: zod.string(),
+  shareToken: zod.string(),
+  visibility: zod.enum(["private", "link_only", "public"]),
+  viewCount: zod.number(),
+  downloadCount: zod.number(),
+  createdAt: zod.string(),
+});
+export const ListRecentGalleriesResponse = zod.array(
+  ListRecentGalleriesResponseItem,
+);
+
+/**
  * @summary List galleries for a project
  */
 export const ListGalleriesParams = zod.object({

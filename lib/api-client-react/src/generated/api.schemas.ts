@@ -406,6 +406,26 @@ export interface CreateAiJobBody {
   settings?: CreateAiJobBodySettings;
 }
 
+export type GallerySummaryVisibility =
+  (typeof GallerySummaryVisibility)[keyof typeof GallerySummaryVisibility];
+
+export const GallerySummaryVisibility = {
+  private: "private",
+  link_only: "link_only",
+  public: "public",
+} as const;
+
+export interface GallerySummary {
+  id: number;
+  projectId: number;
+  name: string;
+  shareToken: string;
+  visibility: GallerySummaryVisibility;
+  viewCount: number;
+  downloadCount: number;
+  createdAt: string;
+}
+
 export type GalleryVisibility =
   (typeof GalleryVisibility)[keyof typeof GalleryVisibility];
 

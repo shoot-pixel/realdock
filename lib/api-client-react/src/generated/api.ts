@@ -32,6 +32,7 @@ import type {
   ErrorEnvelope,
   FavoriteStatus,
   Gallery,
+  GallerySummary,
   HealthStatus,
   Invoice,
   ListMediaParams,
@@ -2522,6 +2523,81 @@ export const useCancelAiJob = <
 > => {
   return useMutation(getCancelAiJobMutationOptions(options));
 };
+
+/**
+ * @summary List recent galleries across all user projects
+ */
+export const getListRecentGalleriesUrl = () => {
+  return `/api/galleries`;
+};
+
+export const listRecentGalleries = async (
+  options?: RequestInit,
+): Promise<GallerySummary[]> => {
+  return customFetch<GallerySummary[]>(getListRecentGalleriesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRecentGalleriesQueryKey = () => {
+  return [`/api/galleries`] as const;
+};
+
+export const getListRecentGalleriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRecentGalleries>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRecentGalleries>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRecentGalleriesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRecentGalleries>>
+  > = ({ signal }) => listRecentGalleries({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRecentGalleries>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRecentGalleriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRecentGalleries>>
+>;
+export type ListRecentGalleriesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List recent galleries across all user projects
+ */
+
+export function useListRecentGalleries<
+  TData = Awaited<ReturnType<typeof listRecentGalleries>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRecentGalleries>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRecentGalleriesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List galleries for a project

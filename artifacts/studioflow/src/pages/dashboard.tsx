@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import {
   useGetDashboardSummary,
   useListProjects,
+  useListRecentGalleries,
 } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -29,6 +30,20 @@ const AI_TOOLS = [
   { label: "Declutter",        icon: Sparkles,   href: "/projects", desc: "Remove objects" },
 ];
 
+function formatRelativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  const weeks = Math.floor(days / 7);
+  const months = Math.floor(days / 30);
+  if (minutes < 60) return minutes <= 1 ? "just now" : `${minutes} minutes ago`;
+  if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+  if (days < 7) return days === 1 ? "1 day ago" : `${days} days ago`;
+  if (weeks < 5) return weeks === 1 ? "1 week ago" : `${weeks} weeks ago`;
+  return months === 1 ? "1 month ago" : `${months} months ago`;
+}
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-[10.5px] font-semibold text-muted-foreground uppercase tracking-[0.10em] mb-3">
@@ -51,12 +66,18 @@ export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary();
   const { data: projects, isLoading: projectsLoading } = useListProjects({});
+  const { data: recentGalleries, isLoading: galleriesLoading } = useListRecentGalleries();
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
   // Featured = most recent active project
   const activeProject = projects?.find(p => p.status === "active") ?? projects?.[0];
   const recentProjects = projects?.slice(0, 5) ?? [];
+
+  // Build a projectId → name lookup from the projects list
+  const projectNameMap = new Map<number, string>(
+    (projects ?? []).map(p => [p.id, p.name])
+  );
 
   return (
     <Layout title="Dashboard" breadcrumbs={[{ label: "Dashboard" }]}>
@@ -262,31 +283,38 @@ export default function DashboardPage() {
                 </Link>
               </div>
 
-              {summaryLoading ? (
+              {galleriesLoading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-14 rounded-md" />
                   <Skeleton className="h-14 rounded-md" />
                 </div>
-              ) : (summary?.activeGalleries ?? 0) === 0 ? (
+              ) : !recentGalleries || recentGalleries.length === 0 ? (
                 <div className="rounded-lg border border-border bg-card p-5 text-center">
                   <Share2 className="w-6 h-6 text-muted-foreground/25 mx-auto mb-2" />
                   <p className="text-[12.5px] text-muted-foreground">No galleries shared yet</p>
                 </div>
               ) : (
                 <div className="rounded-lg border border-border overflow-hidden bg-card">
-                  {[
-                    { name: "Oakwood Residence", views: "24 views", ago: "3 days ago" },
-                    { name: "Pacific Heights Condo", views: "11 views", ago: "1 week ago" },
-                  ].map((g, i) => (
-                    <div key={i} className={cn(
-                      "flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors cursor-pointer",
-                      i === 0 && "border-b border-border/60"
-                    )}>
+                  {recentGalleries.map((g, i) => (
+                    <div
+                      key={g.id}
+                      onClick={() => setLocation(`/projects/${g.projectId}/gallery/${g.id}`)}
+                      className={cn(
+                        "flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors cursor-pointer",
+                        i > 0 && "border-t border-border/60"
+                      )}
+                    >
                       <div>
-                        <p className="text-[13px] font-medium text-foreground">{g.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">Shared {g.ago}</p>
+                        <p className="text-[13px] font-medium text-foreground">
+                          {projectNameMap.get(g.projectId) ?? g.name}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Shared {formatRelativeTime(g.createdAt)}
+                        </p>
                       </div>
-                      <span className="text-[11.5px] font-medium text-primary">{g.views}</span>
+                      <span className="text-[11.5px] font-medium text-primary">
+                        {g.viewCount} {g.viewCount === 1 ? "view" : "views"}
+                      </span>
                     </div>
                   ))}
                 </div>
