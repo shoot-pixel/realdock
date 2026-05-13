@@ -454,9 +454,13 @@ router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
     try {
       let buffer: Buffer;
 
-      if (url.startsWith("/objects/")) {
+      if (url.startsWith("/objects/") || url.startsWith("/api/storage/objects/")) {
         // Object storage path — read directly from GCS
-        const file = await objectStorageService.getObjectEntityFile(url);
+        // Normalise: /api/storage/objects/... → /objects/...
+        const objectPath = url.startsWith("/api/storage/objects/")
+          ? url.replace("/api/storage", "")
+          : url;
+        const file = await objectStorageService.getObjectEntityFile(objectPath);
         const chunks: Buffer[] = [];
         await new Promise<void>((resolve, reject) => {
           const stream = file.createReadStream();
