@@ -410,6 +410,78 @@ Return ONLY valid JSON with this exact structure:
   });
 });
 
+router.post("/gallery/:token/social-post", async (req, res): Promise<void> => {
+  const params = GetPublicGalleryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid token" });
+    return;
+  }
+
+  const result = await fetchPublicGallery(params.data.token);
+  if ("error" in result) {
+    if (result.error === "private") {
+      res.status(403).json({ error: "This gallery is private." });
+      return;
+    }
+    res.status(404).json({ error: "Gallery not found" });
+    return;
+  }
+
+  const { gallery, project, photographer, media } = result;
+  const address = project.address ?? "Luxury Property";
+  const coverImageUrl =
+    gallery.coverImageUrl ??
+    media.find(m => m.mediaType === "photo")?.originalUrl ??
+    media[0]?.originalUrl ??
+    null;
+  const companyName =
+    (gallery.companyName as string | null | undefined) ??
+    (photographer as { businessName?: string } | null)?.businessName ??
+    "RealDock";
+
+  let tagline = "A rare opportunity to own an exceptional residence in a coveted location.";
+
+  const openai = getOpenAIClient();
+  if (openai) {
+    try {
+      type MsgContent =
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string; detail: "low" } };
+
+      const userContent: MsgContent[] = [
+        {
+          type: "text",
+          text: `Write a single luxury real estate tagline for a "COMING SOON" social media post. Property address: ${address}. Requirements: evocative and aspirational, under 12 words, no quotes, absolutely no mention of photography cameras or media — only describe the lifestyle and opportunity.`,
+        },
+      ];
+      if (coverImageUrl) {
+        userContent.push({ type: "image_url", image_url: { url: coverImageUrl, detail: "low" } });
+      }
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a luxury real estate copywriter. Write short, evocative taglines for 'COMING SOON' social media posts. Respond with ONLY the tagline — no explanation, no quotes, no hashtags.",
+          },
+          { role: "user", content: userContent },
+        ],
+        max_tokens: 60,
+      });
+
+      const raw = completion.choices[0]?.message?.content?.trim();
+      if (raw) tagline = raw.replace(/^["']|["']$/g, "");
+    } catch {
+      // fall through to default
+    }
+  }
+
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ tagline, address, projectName: project.name, coverImageUrl, companyName });
+});
+
 router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
   const params = GetPublicGalleryParams.safeParse(req.params);
   if (!params.success) {

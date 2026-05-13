@@ -3,9 +3,10 @@ import { useRoute } from "wouter";
 import { useGetPublicGallery } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Camera, Download, X, ChevronLeft, ChevronRight, ImageIcon, CheckCircle2, Loader2, Receipt, Sparkles,
+  Camera, Download, X, ChevronLeft, ChevronRight, ImageIcon, CheckCircle2, Loader2, Receipt, Sparkles, Share2,
 } from "lucide-react";
 import ListingPreviewModal from "./listing-preview-modal";
+import SocialPostModal from "./social-post-modal";
 
 // ─── Theme system ─────────────────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ export default function GalleryPortalPage() {
   const [downloading, setDownloading] = useState(false);
   const [downloadDone, setDownloadDone] = useState(false);
   const [showListingPreview, setShowListingPreview] = useState(false);
+  const [showSocialPost, setShowSocialPost] = useState(false);
 
   const { data: gallery, isLoading } = useGetPublicGallery(token);
 
@@ -209,14 +211,24 @@ export default function GalleryPortalPage() {
               {media.length} {media.length === 1 ? "photo" : "photos"}
             </span>
             {media.length > 0 && (
-              <button
-                onClick={() => setShowListingPreview(true)}
-                data-testid="button-listing-preview"
-                className="flex items-center gap-1.5 h-9 px-4 rounded-xl border border-primary/40 bg-primary/8 text-primary text-sm font-medium hover:bg-primary/15 transition-colors"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Listing Preview</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setShowSocialPost(true)}
+                  data-testid="button-social-post"
+                  className="flex items-center gap-1.5 h-9 px-4 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Generate Social Post</span>
+                </button>
+                <button
+                  onClick={() => setShowListingPreview(true)}
+                  data-testid="button-listing-preview"
+                  className="flex items-center gap-1.5 h-9 px-4 rounded-xl border border-primary/40 bg-primary/8 text-primary text-sm font-medium hover:bg-primary/15 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Listing Preview</span>
+                </button>
+              </>
             )}
             {gallery.invoiceToken && (
               <a
@@ -371,6 +383,11 @@ export default function GalleryPortalPage() {
           </>
         )}
       </main>
+
+      {/* ── Social Post Modal ───────────────────────────────────────────────── */}
+      {showSocialPost && (
+        <SocialPostModal token={token} onClose={() => setShowSocialPost(false)} />
+      )}
 
       {/* ── Listing Preview Modal ───────────────────────────────────────────── */}
       {showListingPreview && (
