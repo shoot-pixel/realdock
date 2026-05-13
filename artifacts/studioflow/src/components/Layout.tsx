@@ -7,8 +7,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   LayoutDashboard, FolderOpen, Users, Settings, LogOut, Sun, Moon,
-  Camera, Menu, X, ChevronRight, Images
+  Menu, X, ChevronRight,
 } from "lucide-react";
+import RealDockLogo from "@/components/RealDockLogo";
 import { cn } from "@/lib/utils";
 import { useGetStorageUsage } from "@workspace/api-client-react";
 
@@ -57,13 +58,8 @@ export default function Layout({ children, title, breadcrumbs }: LayoutProps) {
     )}>
       {/* Logo */}
       <div className="px-5 pt-8 pb-7">
-        <div className="flex items-center gap-2.5 mb-1">
-          <div className="w-7 h-7 rounded flex items-center justify-center bg-primary/15">
-            <Camera className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <span className="font-serif text-[19px] font-semibold text-foreground tracking-tight leading-none">StudioFlow</span>
-        </div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] pl-[38px]">Studio Dashboard</p>
+        <RealDockLogo size="md" className="mb-1" />
+        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] pl-[38px]">Media Dashboard</p>
       </div>
 
       {/* Nav */}

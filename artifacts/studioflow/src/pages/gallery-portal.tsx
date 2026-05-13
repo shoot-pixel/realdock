@@ -323,7 +323,7 @@ export default function GalleryPortalPage() {
                   </button>
                 )}
                 <span className="text-muted-foreground/50">·</span>
-                <span>Powered by <strong className="text-foreground">StudioFlow</strong></span>
+                <span>Powered by <strong className="text-foreground">RealDock</strong></span>
               </div>
             </div>
           </>

@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import ImageViewer from "@/components/ImageViewer";
 import UploadZone from "@/components/UploadZone";
 import {
   useGetProject, useListMedia, useListGalleries, useCreateGallery,
-  useGetProjectStats, getListGalleriesQueryKey
+  useGetProjectStats, getListGalleriesQueryKey, getListMediaQueryKey,
+  useDeleteMedia, useUpdateMedia,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ImageIcon, Zap, Share2, Plus, ExternalLink, Eye, Heart, Upload,
+  ImageIcon, Zap, Share2, Plus, ExternalLink, Eye as EyeIcon, Upload,
+  Trash2, RefreshCw, Loader2,
 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -24,6 +26,152 @@ const STATUS_COLORS: Record<string, string> = {
   delivered: "badge-delivered",
   archived:  "badge-archived",
 };
+
+// ── Upload helper (same presigned-URL flow as UploadZone) ────────────────────
+
+async function uploadReplacementFile(file: File): Promise<{ originalUrl: string; thumbnailUrl: string | null; filename: string }> {
+  const token = localStorage.getItem("sf_token");
+  if (!token) throw new Error("Not authenticated");
+
+  const urlRes = await fetch("/api/storage/uploads/request-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+  });
+  if (!urlRes.ok) throw new Error("Failed to get upload URL");
+  const { uploadURL, objectPath } = await urlRes.json();
+
+  const putRes = await fetch(uploadURL, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+  if (!putRes.ok) throw new Error("Upload failed");
+
+  const servingUrl = `/api/storage${objectPath}`;
+  return { originalUrl: servingUrl, thumbnailUrl: servingUrl, filename: file.name };
+}
+
+// ── Media card ────────────────────────────────────────────────────────────────
+
+interface MediaCardProps {
+  m: { id: number; filename: string; originalUrl: string; thumbnailUrl?: string | null };
+  index: number;
+  onOpen: (i: number) => void;
+  projectId: number;
+}
+
+function MediaCard({ m, index, onOpen, projectId }: MediaCardProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const deleteMedia = useDeleteMedia();
+  const updateMedia = useUpdateMedia();
+  const [replacing, setReplacing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: getListMediaQueryKey(projectId) });
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    deleteMedia.mutate({ id: m.id }, {
+      onSuccess: () => { invalidate(); toast({ title: "Photo deleted" }); },
+      onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
+    });
+  };
+
+  const handleReplace = useCallback(async (file: File) => {
+    setReplacing(true);
+    try {
+      const { originalUrl, thumbnailUrl, filename } = await uploadReplacementFile(file);
+      updateMedia.mutate({ id: m.id, data: { originalUrl, thumbnailUrl, filename } }, {
+        onSuccess: () => { invalidate(); toast({ title: "Photo replaced" }); },
+        onError: () => toast({ title: "Replace failed", variant: "destructive" }),
+      });
+    } catch {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setReplacing(false);
+    }
+  }, [m.id, updateMedia, invalidate, toast]);
+
+  const busy = deleteMedia.isPending || replacing;
+
+  return (
+    <div
+      className="group relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer"
+      data-testid={`media-item-${m.id}`}
+      onMouseLeave={() => setConfirmDelete(false)}
+    >
+      {/* Hidden file input for replace */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleReplace(f); e.target.value = ""; }}
+      />
+
+      <img
+        src={m.thumbnailUrl ?? m.originalUrl}
+        alt={m.filename}
+        onClick={() => !busy && onOpen(index)}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      />
+
+      {/* Open/Edit overlay */}
+      <div
+        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 pointer-events-none"
+        style={{ pointerEvents: "none" }}
+      >
+        <Zap className="w-5 h-5 text-primary" />
+        <p className="text-[11px] text-white font-medium">Open &amp; Edit</p>
+      </div>
+
+      {/* Action buttons — top row */}
+      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        {/* Replace */}
+        <button
+          onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+          disabled={busy}
+          data-testid={`button-replace-${m.id}`}
+          title="Replace with new file"
+          className="w-7 h-7 rounded-md bg-black/60 backdrop-blur-sm border border-white/10 text-white hover:bg-white/20 hover:text-white flex items-center justify-center transition-colors disabled:opacity-50"
+        >
+          {replacing ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="w-3.5 h-3.5" />
+          )}
+        </button>
+
+        {/* Delete / Confirm */}
+        <button
+          onClick={handleDelete}
+          disabled={busy}
+          data-testid={`button-delete-${m.id}`}
+          title={confirmDelete ? "Click again to confirm delete" : "Delete photo"}
+          className={`h-7 rounded-md backdrop-blur-sm border text-white flex items-center justify-center gap-1 transition-all disabled:opacity-50 px-1.5 ${
+            confirmDelete
+              ? "bg-destructive border-destructive/80 text-white text-[10px] font-medium min-w-[56px]"
+              : "w-7 bg-black/60 border-white/10 hover:bg-destructive hover:border-destructive"
+          }`}
+        >
+          {deleteMedia.isPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : confirmDelete ? (
+            <>Confirm</>
+          ) : (
+            <Trash2 className="w-3.5 h-3.5" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage() {
   const [, params] = useRoute("/projects/:id");
@@ -95,7 +243,6 @@ export default function ProjectDetailPage() {
         { label: project.name }
       ]}
     >
-      {/* Image viewer — rendered outside the scrollable layout */}
       {viewerIndex !== null && allMedia.length > 0 && (
         <ImageViewer
           media={allMedia}
@@ -167,11 +314,8 @@ export default function ProjectDetailPage() {
           </TabsList>
 
           <TabsContent value="media" className="mt-4 space-y-4">
-            {/* Upload zone — shown when toggled or when no media */}
             {(showUpload || (!mediaLoading && allMedia.length === 0)) && (
-              <UploadZone
-                projectId={projectId}
-              />
+              <UploadZone projectId={projectId} />
             )}
 
             {mediaLoading ? (
@@ -186,7 +330,7 @@ export default function ProjectDetailPage() {
               <>
                 <div className="flex items-center justify-between">
                   <p className="text-[11.5px] text-muted-foreground">
-                    {allMedia.length} {allMedia.length === 1 ? "file" : "files"} · Click any image to open and apply AI enhancements.
+                    {allMedia.length} {allMedia.length === 1 ? "file" : "files"} · Hover a photo to delete or replace it. Click to open &amp; edit.
                   </p>
                   {!showUpload && (
                     <button
@@ -200,27 +344,13 @@ export default function ProjectDetailPage() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {allMedia.map((m, i) => (
-                    <div
+                    <MediaCard
                       key={m.id}
-                      onClick={() => setViewerIndex(i)}
-                      className="group relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer"
-                      data-testid={`media-item-${m.id}`}
-                    >
-                      <img
-                        src={m.thumbnailUrl ?? m.originalUrl}
-                        alt={m.filename}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
-                        <Zap className="w-5 h-5 text-primary" />
-                        <p className="text-[11px] text-white font-medium">Open &amp; Edit</p>
-                      </div>
-                      {m.status === "approved" && (
-                        <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                          <Heart className="w-3 h-3 text-accent-foreground fill-current" />
-                        </div>
-                      )}
-                    </div>
+                      m={m}
+                      index={i}
+                      onOpen={setViewerIndex}
+                      projectId={projectId}
+                    />
                   ))}
                 </div>
               </>
@@ -256,7 +386,7 @@ export default function ProjectDetailPage() {
                           <ExternalLink className="w-3.5 h-3.5 mr-1" /> Open
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => setLocation(`/projects/${projectId}/gallery/${g.id}`)}>
-                          <Eye className="w-3.5 h-3.5 mr-1" /> Manage
+                          <EyeIcon className="w-3.5 h-3.5 mr-1" /> Manage
                         </Button>
                       </div>
                     </CardContent>

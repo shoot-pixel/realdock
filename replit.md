@@ -1,8 +1,8 @@
-# StudioFlow
+# RealDock
 
 ## Overview
 
-StudioFlow is a luxury real estate media delivery SaaS for professional photographers and videographers. Built as a pnpm monorepo with React + TypeScript + Vite frontend, Express API backend, and PostgreSQL + Drizzle ORM.
+RealDock is a luxury real estate media delivery SaaS for professional photographers and videographers. Built as a pnpm monorepo with React + TypeScript + Vite frontend, Express API backend, and PostgreSQL + Drizzle ORM.
 
 ## Design System — Studio Dark
 

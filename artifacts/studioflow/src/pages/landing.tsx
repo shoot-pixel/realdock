@@ -66,7 +66,7 @@ function AppPreviewMock() {
           ))}
         </div>
         <div style={{ flex: 1, background: "#1C1F28", borderRadius: 4, height: 22, display: "flex", alignItems: "center", paddingLeft: 8 }}>
-          <span style={{ fontSize: 10, color: "#5A5C62" }}>studioflow.co/dashboard</span>
+          <span style={{ fontSize: 10, color: "#5A5C62" }}>realdock.co/dashboard</span>
         </div>
       </div>
 
@@ -74,7 +74,7 @@ function AppPreviewMock() {
       <div style={{ display: "flex", height: 340 }}>
         {/* Sidebar */}
         <div style={{ width: 130, background: "#0C0E13", borderRight: "1px solid #1A1D24", padding: "16px 10px", display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 13, fontFamily: "'Playfair Display', serif", fontWeight: 600, color: "#E6E3DE", marginBottom: 20, paddingLeft: 4 }}>StudioFlow</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#E6E3DE", marginBottom: 20, paddingLeft: 4 }}>RealDock</div>
           {["Dashboard", "Projects", "Galleries", "Clients", "AI Tools"].map((item, i) => (
             <div key={item} style={{
               padding: "7px 10px", borderRadius: 4, marginBottom: 2, fontSize: 11,
@@ -251,7 +251,7 @@ export default function Landing() {
           <div style={{ width: 26, height: 26, borderRadius: 6, background: "rgba(201,169,110,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Camera size={13} color="#C9A96E" />
           </div>
-          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 600, color: "#E6E3DE" }}>StudioFlow</span>
+          <span style={{ fontSize: 18, fontWeight: 600, color: "#E6E3DE" }}>RealDock</span>
         </div>
         <nav style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <a href="#features" style={{ fontSize: 13, color: "#6A6C72", textDecoration: "none", padding: "6px 12px" }}>Features</a>
@@ -477,7 +477,7 @@ export default function Landing() {
                 Professional-Grade AI Editing at Your Fingertips
               </h2>
               <p style={{ fontSize: 14.5, color: "#6A6C72", lineHeight: 1.75, marginBottom: 24 }}>
-                Stop spending hours in Lightroom or Photoshop. StudioFlow's AI tools transform your property photos in minutes — virtual staging, sky replacement, day-to-dusk conversions, and more.
+                Stop spending hours in Lightroom or Photoshop. RealDock's AI tools transform your property photos in minutes — virtual staging, sky replacement, day-to-dusk conversions, and more.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {[
@@ -622,7 +622,7 @@ export default function Landing() {
               {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C9A96E" color="#C9A96E" />)}
             </div>
             <blockquote style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontStyle: "italic", color: "#D8D5D0", lineHeight: 1.65, marginBottom: 28 }}>
-              "StudioFlow transformed how I deliver to luxury clients. My galleries look world-class and my turnaround time dropped by 60%. The AI tools alone save me four hours per listing."
+              "RealDock transformed how I deliver to luxury clients. My galleries look world-class and my turnaround time dropped by 60%. The AI tools alone save me four hours per listing."
             </blockquote>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
               <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg, #C9A96E, #9A7A48)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 600, color: "#111316" }}>E</div>
@@ -643,7 +643,7 @@ export default function Landing() {
               Ready to Elevate Your Real Estate Media Business?
             </h2>
             <p style={{ fontSize: 15, color: "#6A6C72", marginBottom: 32, lineHeight: 1.6 }}>
-              Join photographers and videographers who deliver faster, look more professional, and grow their studio with StudioFlow.
+              Join photographers and videographers who deliver faster, look more professional, and grow their studio with RealDock.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 12 }}>
               <Link href="/register">
@@ -674,14 +674,14 @@ export default function Landing() {
       <footer style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "28px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Camera size={13} color="#C9A96E" />
-          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, color: "#4A4C52" }}>StudioFlow</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#4A4C52" }}>RealDock</span>
         </div>
         <div style={{ display: "flex", gap: 24 }}>
           {["Features", "Pricing", "Log In", "Sign Up"].map(l => (
             <span key={l} style={{ fontSize: 12.5, color: "#3E4048", cursor: "pointer" }}>{l}</span>
           ))}
         </div>
-        <p style={{ fontSize: 12, color: "#3E4048" }}>© 2026 StudioFlow. Built for real estate media professionals.</p>
+        <p style={{ fontSize: 12, color: "#3E4048" }}>© 2026 RealDock. Built for real estate media professionals.</p>
       </footer>
 
     </div>

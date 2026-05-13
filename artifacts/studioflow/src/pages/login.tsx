@@ -3,7 +3,8 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Camera, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import RealDockLogo from "@/components/RealDockLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -51,15 +52,10 @@ export default function LoginPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-primary/30" />
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/20">
-              <Camera className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-serif font-bold text-2xl text-white">StudioFlow</span>
-          </div>
+          <RealDockLogo size="lg" variant="light" />
           <div>
             <blockquote className="text-white/90 text-xl font-light italic mb-4">
-              "StudioFlow transformed how I deliver to luxury clients. My galleries look world-class and my turnaround time dropped by 60%."
+              "RealDock transformed how I deliver to luxury clients. My galleries look world-class and my turnaround time dropped by 60%."
             </blockquote>
             <p className="text-white/60 text-sm">— Elena Vasquez, Principal Photographer @ V+E Studios</p>
           </div>
@@ -70,11 +66,8 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-8 py-12">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-2 mb-10">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Camera className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-serif font-bold text-xl">StudioFlow</span>
+          <div className="lg:hidden mb-10">
+            <RealDockLogo size="md" />
           </div>
 
           <h1 className="text-3xl font-bold text-foreground mb-2">Welcome back</h1>
@@ -83,7 +76,7 @@ export default function LoginPage() {
           {/* Demo credentials */}
           <div className="mb-6 p-3 rounded-lg bg-primary/8 border border-primary/20">
             <p className="text-xs text-primary font-medium mb-1">Demo credentials</p>
-            <p className="text-xs text-muted-foreground">Email: <span className="font-mono text-foreground">demo@studioflow.co</span></p>
+            <p className="text-xs text-muted-foreground">Email: <span className="font-mono text-foreground">demo@realdock.co</span></p>
             <p className="text-xs text-muted-foreground">Password: <span className="font-mono text-foreground">demo1234</span></p>
           </div>
 

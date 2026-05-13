@@ -3,7 +3,8 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Camera, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import RealDockLogo from "@/components/RealDockLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -53,12 +54,7 @@ export default function RegisterPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-primary/30" />
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/20">
-              <Camera className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-serif font-bold text-2xl text-white">StudioFlow</span>
-          </div>
+          <RealDockLogo size="lg" variant="light" />
           <div className="space-y-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center text-white font-bold">14</div>
@@ -81,11 +77,8 @@ export default function RegisterPage() {
 
       <div className="flex-1 flex flex-col items-center justify-center px-8 py-12">
         <div className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center gap-2 mb-10">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Camera className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-serif font-bold text-xl">StudioFlow</span>
+          <div className="lg:hidden mb-10">
+            <RealDockLogo size="md" />
           </div>
 
           <h1 className="text-3xl font-bold text-foreground mb-2">Start your free trial</h1>
