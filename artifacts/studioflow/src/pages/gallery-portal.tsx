@@ -210,7 +210,7 @@ export default function GalleryPortalPage() {
             <span className="text-xs text-muted-foreground hidden sm:block">
               {media.length} {media.length === 1 ? "photo" : "photos"}
             </span>
-            {media.length > 0 && (
+            {media.length > 0 && gallery.photographerPlan === "studio" && (
               <>
                 <button
                   onClick={() => setShowSocialPost(true)}

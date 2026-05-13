@@ -1718,6 +1718,8 @@ components:
           type: ["string", "null"]
         photographerName:
           type: string
+        photographerPlan:
+          type: string
         media:
           type: array
           items:
@@ -1732,6 +1734,7 @@ components:
         - allowComments
         - theme
         - photographerName
+        - photographerPlan
         - media
 
     ReorderMediaBody:

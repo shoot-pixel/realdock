@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, like, count, sql } from "drizzle-orm";
+import { eq, and, like, count, ne, sql } from "drizzle-orm";
 import { db, projectsTable, mediaAssetsTable, galleriesTable } from "@workspace/db";
 import { CreateProjectBody, UpdateProjectBody, UpdateProjectParams, DeleteProjectParams, GetProjectParams, GetProjectStatsParams, ListProjectsQueryParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
@@ -53,12 +53,36 @@ router.get("/projects", requireAuth, async (req: AuthenticatedRequest, res): Pro
   res.json(result);
 });
 
+const PLAN_PROJECT_LIMITS: Record<string, number> = { free: 5, pro: 20, studio: Infinity };
+
 router.post("/projects", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   const parsed = CreateProjectBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+
+  const plan = req.user!.plan;
+  const limit = PLAN_PROJECT_LIMITS[plan] ?? 5;
+
+  if (isFinite(limit)) {
+    const [{ cnt }] = await db
+      .select({ cnt: count() })
+      .from(projectsTable)
+      .where(and(
+        eq(projectsTable.userId, req.userId!),
+        ne(projectsTable.status, "archived"),
+      ));
+    if (Number(cnt) >= limit) {
+      res.status(403).json({
+        error: `Project limit reached. The ${plan} plan allows up to ${limit} active projects. Archive existing projects or upgrade your plan.`,
+        limit,
+        upgrade: true,
+      });
+      return;
+    }
+  }
+
   const [project] = await db.insert(projectsTable).values({
     userId: req.userId!,
     ...parsed.data,

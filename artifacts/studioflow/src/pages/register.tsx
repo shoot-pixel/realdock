@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, ArrowRight, Lock, KeyRound } from "lucide-react";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import RealDockLogo from "@/components/RealDockLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,6 @@ import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth-context";
 
 const schema = z.object({
-  inviteCode: z.string().min(1, "Invite code required").refine(
-    v => v.trim().toUpperCase() === "REALDOCK2026",
-    "Invalid invite code"
-  ),
   name: z.string().min(2, "Full name required"),
   email: z.string().email("Valid email required"),
   businessName: z.string().optional(),
@@ -32,13 +28,12 @@ export default function RegisterPage() {
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { inviteCode: "", name: "", email: "", businessName: "", password: "" },
+    defaultValues: { name: "", email: "", businessName: "", password: "" },
   });
 
   const onSubmit = (values: z.infer<typeof schema>) => {
-    const { inviteCode, ...rest } = values;
     registerMutation.mutate({
-      data: { ...rest, businessName: rest.businessName || null, inviteCode } as Parameters<typeof registerMutation.mutate>[0]["data"],
+      data: { name: values.name, email: values.email, password: values.password, businessName: values.businessName || null } as Parameters<typeof registerMutation.mutate>[0]["data"],
     }, {
       onSuccess: (data) => {
         login(data.token, data.user);
@@ -64,16 +59,11 @@ export default function RegisterPage() {
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <RealDockLogo size="lg" variant="light" />
           <div className="space-y-6">
-            {/* Invite-only callout */}
-            <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/40 rounded-full px-4 py-1.5">
-              <Lock className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs font-semibold text-primary tracking-wider uppercase">Invite-Only Beta</span>
-            </div>
             <div>
               <p className="text-white/90 text-2xl font-light italic leading-snug mb-3">
                 "Built for photographers who refuse to compromise on presentation."
               </p>
-              <p className="text-white/50 text-sm">— RealDock Beta Program</p>
+              <p className="text-white/50 text-sm">— RealDock Studio</p>
             </div>
             <div className="space-y-3">
               {[
@@ -99,46 +89,13 @@ export default function RegisterPage() {
             <RealDockLogo size="md" />
           </div>
 
-          {/* Beta badge */}
-          <div className="flex items-center gap-2 mb-5">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase bg-primary/12 text-primary border border-primary/25 rounded-full px-3 py-1">
-              <Lock className="w-3 h-3" /> Invite Only
-            </span>
-          </div>
-
-          <h1 className="text-3xl font-bold text-foreground mb-2">Join the Beta</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Create Account</h1>
           <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
-            RealDock is invite-only during beta. Enter your invite code below to create your account.
+            Start delivering stunning real estate media to your clients today. Free plan included.
           </p>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Invite code — first and prominent */}
-              <FormField
-                control={form.control}
-                name="inviteCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1.5">
-                      <KeyRound className="w-3.5 h-3.5 text-primary" />
-                      Invite Code
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="REALDOCK2026"
-                        autoComplete="off"
-                        spellCheck={false}
-                        className="font-mono tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal"
-                        onChange={e => field.onChange(e.target.value.toUpperCase())}
-                        data-testid="input-invite-code"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="name"

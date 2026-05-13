@@ -1,9 +1,11 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, aiJobsTable, mediaAssetsTable } from "@workspace/db";
+import { eq, and, gte, ne, sql } from "drizzle-orm";
+import { db, aiJobsTable, mediaAssetsTable, projectsTable } from "@workspace/db";
 import { CreateAiJobBody, CreateAiJobParams, GetAiJobParams, CancelAiJobParams, ListAiJobsParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
 import { logger } from "../lib/logger";
+
+const PLAN_MONTHLY_CREDITS: Record<string, number> = { free: 0, pro: 100, studio: 2000 };
 
 const router: IRouter = Router();
 
@@ -91,7 +93,47 @@ router.post("/media/:mediaId/ai-jobs", requireAuth, async (req: AuthenticatedReq
     res.status(404).json({ error: "Media not found" });
     return;
   }
-  const creditsUsed = JOB_CREDITS[parsed.data.jobType] ?? 1;
+  // ── Plan enforcement ────────────────────────────────────────────────────
+  const plan = req.user!.plan;
+  const monthlyLimit = PLAN_MONTHLY_CREDITS[plan] ?? 0;
+
+  if (monthlyLimit === 0) {
+    res.status(403).json({
+      error: "AI features are not available on the Free plan. Upgrade to Pro or Studio.",
+      upgrade: true,
+    });
+    return;
+  }
+
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const [creditResult] = await db
+    .select({ total: sql<number>`coalesce(sum(${aiJobsTable.creditsUsed}), 0)` })
+    .from(aiJobsTable)
+    .innerJoin(mediaAssetsTable, eq(aiJobsTable.mediaId, mediaAssetsTable.id))
+    .innerJoin(projectsTable, eq(mediaAssetsTable.projectId, projectsTable.id))
+    .where(and(
+      eq(projectsTable.userId, req.userId!),
+      gte(aiJobsTable.createdAt, startOfMonth),
+      ne(aiJobsTable.status, "cancelled"),
+    ));
+
+  const creditsUsedThisMonth = Number(creditResult?.total ?? 0);
+  const creditsForThisJob = JOB_CREDITS[parsed.data.jobType] ?? 1;
+
+  if (creditsUsedThisMonth + creditsForThisJob > monthlyLimit) {
+    res.status(402).json({
+      error: `Monthly AI credit limit reached. Used ${creditsUsedThisMonth} of ${monthlyLimit} credits.`,
+      creditsUsed: creditsUsedThisMonth,
+      monthlyLimit,
+      upgrade: true,
+    });
+    return;
+  }
+
+  const creditsUsed = creditsForThisJob;
   const [job] = await db.insert(aiJobsTable).values({
     mediaId: params.data.mediaId,
     jobType: parsed.data.jobType,

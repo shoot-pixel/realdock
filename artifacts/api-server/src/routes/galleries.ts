@@ -293,6 +293,7 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
     customCss: gallery.customCss ?? null,
     invoiceToken: invoice?.shareToken ?? null,
     photographerName: photographer?.name ?? "RealDock Photographer",
+    photographerPlan: photographer?.plan ?? "free",
     media: media.map(m => ({
       id: m.id,
       projectId: m.projectId,

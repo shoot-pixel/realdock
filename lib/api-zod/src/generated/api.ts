@@ -896,6 +896,7 @@ export const GetPublicGalleryResponse = zod.object({
   customCss: zod.string().nullish(),
   invoiceToken: zod.string().nullish(),
   photographerName: zod.string(),
+  photographerPlan: zod.string(),
   media: zod.array(
     zod.object({
       id: zod.number(),

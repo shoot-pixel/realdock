@@ -560,6 +560,7 @@ export interface PublicGallery {
   /** @nullable */
   invoiceToken?: string | null;
   photographerName: string;
+  photographerPlan: string;
   media: MediaAsset[];
 }
 
