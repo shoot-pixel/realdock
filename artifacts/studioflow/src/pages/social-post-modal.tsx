@@ -7,7 +7,7 @@ interface SocialPostData {
   address: string;
   projectName: string;
   coverImageUrl: string | null;
-  agentName: string;
+  clientName: string | null;
 }
 
 interface SocialPostModalProps {
@@ -163,11 +163,13 @@ function drawPost(
     ctx.fillText(tagLines[i], W / 2, tagStartY + i * tagLineH);
   }
 
-  // "Presented by [Agent Name]"
-  const presentedY = tagStartY + tagLines.length * tagLineH + 80;
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
-  ctx.font = `400 30px 'Playfair Display', Georgia, serif`;
-  ctx.fillText(`Presented by ${data.agentName}`, W / 2, presentedY);
+  // "Presented by [Client Name]" — only if an invoice client name exists
+  if (data.clientName) {
+    const presentedY = tagStartY + tagLines.length * tagLineH + 80;
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
+    ctx.font = `400 30px 'Playfair Display', Georgia, serif`;
+    ctx.fillText(`Presented by ${data.clientName}`, W / 2, presentedY);
+  }
 }
 
 export default function SocialPostModal({ token, onClose }: SocialPostModalProps) {

@@ -478,10 +478,15 @@ router.post("/gallery/:token/social-post", async (req, res): Promise<void> => {
     }
   }
 
-  const agentName = photographer?.name ?? "Your Agent";
+  const [invoice] = await db.select().from(invoicesTable)
+    .where(and(eq(invoicesTable.projectId, project.id), ne(invoicesTable.status, "void")))
+    .orderBy(desc(invoicesTable.id))
+    .limit(1);
+
+  const clientName = invoice?.clientName || null;
 
   res.setHeader("Cache-Control", "no-store");
-  res.json({ tagline, address, projectName: project.name, coverImageUrl, agentName });
+  res.json({ tagline, address, projectName: project.name, coverImageUrl, clientName });
 });
 
 router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
