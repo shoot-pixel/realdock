@@ -4,7 +4,6 @@ import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable,
 import { CreateGalleryBody, CreateGalleryParams, UpdateGalleryBody, UpdateGalleryParams, DeleteGalleryParams, GetGalleryParams, GetPublicGalleryParams, ListGalleriesParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
 import { randomBytes } from "crypto";
-import { Readable } from "stream";
 import { ZipArchive } from "archiver";
 import OpenAI from "openai";
 
@@ -451,7 +450,7 @@ router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
 
     try {
       const resp = await fetch(url);
-      if (!resp.ok || !resp.body) continue;
+      if (!resp.ok) continue;
 
       const urlPath = url.split("?")[0] ?? "";
       const inferredExt = urlPath.split(".").pop()?.toLowerCase() ?? "jpg";
@@ -463,7 +462,8 @@ router.get("/gallery/:token/download-zip", async (req, res): Promise<void> => {
         ? m.filename
         : `photo-${String(i + 1).padStart(3, "0")}.${validExt}`;
 
-      archive.append(Readable.fromWeb(resp.body as Parameters<typeof Readable.fromWeb>[0]), { name: entryName });
+      const buffer = Buffer.from(await resp.arrayBuffer());
+      archive.append(buffer, { name: entryName });
     } catch {
       // skip images that fail to fetch
     }
