@@ -3,8 +3,9 @@ import { useRoute } from "wouter";
 import { useGetPublicGallery } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Camera, Download, X, ChevronLeft, ChevronRight, ImageIcon, CheckCircle2, Loader2, Receipt,
+  Camera, Download, X, ChevronLeft, ChevronRight, ImageIcon, CheckCircle2, Loader2, Receipt, Sparkles,
 } from "lucide-react";
+import ListingPreviewModal from "./listing-preview-modal";
 
 // ─── Theme system ─────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export default function GalleryPortalPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadDone, setDownloadDone] = useState(false);
+  const [showListingPreview, setShowListingPreview] = useState(false);
 
   const { data: gallery, isLoading } = useGetPublicGallery(token);
 
@@ -185,6 +187,16 @@ export default function GalleryPortalPage() {
             <span className="text-xs text-muted-foreground hidden sm:block">
               {media.length} {media.length === 1 ? "photo" : "photos"}
             </span>
+            {media.length > 0 && (
+              <button
+                onClick={() => setShowListingPreview(true)}
+                data-testid="button-listing-preview"
+                className="flex items-center gap-1.5 h-9 px-4 rounded-xl border border-primary/40 bg-primary/8 text-primary text-sm font-medium hover:bg-primary/15 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Listing Preview</span>
+              </button>
+            )}
             {gallery.invoiceToken && (
               <a
                 href={`/invoice/${gallery.invoiceToken}`}
@@ -338,6 +350,11 @@ export default function GalleryPortalPage() {
           </>
         )}
       </main>
+
+      {/* ── Listing Preview Modal ───────────────────────────────────────────── */}
+      {showListingPreview && (
+        <ListingPreviewModal token={token} onClose={() => setShowListingPreview(false)} />
+      )}
 
       {/* ── Lightbox ────────────────────────────────────────────────────────── */}
       {lightboxMedia && lightboxIndex !== null && (
