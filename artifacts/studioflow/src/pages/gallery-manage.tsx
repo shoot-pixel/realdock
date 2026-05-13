@@ -389,7 +389,19 @@ export default function GalleryManagePage() {
             {/* Available (not yet included) photos */}
             {availableMedia.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">Available — click to add</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-medium text-muted-foreground">Available — click to add</p>
+                  <button
+                    onClick={() => {
+                      setOrderedIds(prev => [...prev, ...availableMedia.map(m => m.id)]);
+                      setMediaChanged(true);
+                    }}
+                    className="text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add All
+                  </button>
+                </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
                   {availableMedia.map(m => (
                     <button

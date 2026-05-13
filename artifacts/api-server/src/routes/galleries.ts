@@ -144,10 +144,17 @@ router.patch("/galleries/:id", requireAuth, async (req: AuthenticatedRequest, re
     return;
   }
   const { mediaIds, password: _password, ...rest } = parsed.data;
-  const [gallery] = await db.update(galleriesTable)
-    .set(rest)
-    .where(eq(galleriesTable.id, params.data.id))
-    .returning();
+  let gallery: typeof galleriesTable.$inferSelect | undefined;
+  if (Object.keys(rest).length > 0) {
+    const [updated] = await db.update(galleriesTable)
+      .set(rest)
+      .where(eq(galleriesTable.id, params.data.id))
+      .returning();
+    gallery = updated;
+  } else {
+    const [found] = await db.select().from(galleriesTable).where(eq(galleriesTable.id, params.data.id));
+    gallery = found;
+  }
   if (!gallery) {
     res.status(404).json({ error: "Gallery not found" });
     return;
