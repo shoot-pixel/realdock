@@ -88,7 +88,7 @@ export default function DashboardPage() {
             {/* Image zone */}
             <div className="w-[210px] shrink-0 relative min-h-[168px] bg-muted overflow-hidden">
               {activeProject.coverImageUrl ? (
-                <img src={activeProject.coverImageUrl} alt={activeProject.name} className="w-full h-full object-cover" />
+                <img src={activeProject.coverImageUrl} alt={activeProject.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-end p-4"
                   style={{ background: "linear-gradient(145deg, hsl(225 15% 14%), hsl(225 15% 10%))" }}>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
                       {/* Thumbnail */}
                       <div className="w-10 h-10 rounded-md bg-muted overflow-hidden shrink-0">
                         {project.coverImageUrl ? (
-                          <img src={project.coverImageUrl} alt={project.name} className="w-full h-full object-cover" />
+                          <img src={project.coverImageUrl} alt={project.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <ImageIcon className="w-4 h-4 text-muted-foreground/30" />

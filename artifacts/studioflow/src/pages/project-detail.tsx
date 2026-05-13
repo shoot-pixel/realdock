@@ -255,7 +255,7 @@ export default function ProjectDetailPage() {
         {/* Hero */}
         <div className="relative rounded-xl overflow-hidden h-52 bg-muted">
           {project.coverImageUrl ? (
-            <img src={project.coverImageUrl} alt={project.name} className="w-full h-full object-cover" />
+            <img src={project.coverImageUrl} alt={project.name} loading="eager" decoding="async" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <ImageIcon className="w-12 h-12 text-muted-foreground/30" />

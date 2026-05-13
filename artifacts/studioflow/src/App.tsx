@@ -23,7 +23,8 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: 1000 * 30,
+      staleTime: 1000 * 60 * 5,  // 5 min — avoid re-fetching on every tab focus
+      gcTime: 1000 * 60 * 10,    // 10 min — keep data in memory across nav
     },
   },
 });

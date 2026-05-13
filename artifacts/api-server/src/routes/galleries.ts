@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, asc } from "drizzle-orm";
 import { db, galleriesTable, galleryMediaTable, mediaAssetsTable, projectsTable, usersTable } from "@workspace/db";
 import { CreateGalleryBody, CreateGalleryParams, UpdateGalleryBody, UpdateGalleryParams, DeleteGalleryParams, GetGalleryParams, GetPublicGalleryParams, ListGalleriesParams } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
@@ -45,7 +45,9 @@ function galleryRow(gallery: typeof galleriesTable.$inferSelect) {
 }
 
 async function getGalleryWithMediaIds(gallery: typeof galleriesTable.$inferSelect) {
-  const gm = await db.select().from(galleryMediaTable).where(eq(galleryMediaTable.galleryId, gallery.id));
+  const gm = await db.select().from(galleryMediaTable)
+    .where(eq(galleryMediaTable.galleryId, gallery.id))
+    .orderBy(asc(galleryMediaTable.sortOrder));
   return {
     ...galleryRow(gallery),
     mediaIds: gm.map(m => m.mediaId),
@@ -229,7 +231,7 @@ router.get("/gallery/:token", async (req, res): Promise<void> => {
     coverImageUrl: gallery.coverImageUrl ?? null,
     theme: gallery.theme ?? "classic",
     customCss: gallery.customCss ?? null,
-    photographerName: photographer?.name ?? "StudioFlow Photographer",
+    photographerName: photographer?.name ?? "RealDock Photographer",
     media: media.map(m => ({
       id: m.id,
       projectId: m.projectId,

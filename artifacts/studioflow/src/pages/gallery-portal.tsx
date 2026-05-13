@@ -304,7 +304,7 @@ export default function GalleryPortalPage() {
             <div className="mt-12 pt-6 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
                 {gallery.brandingLogoUrl ? (
-                  <img src={gallery.brandingLogoUrl} alt={displayName} className="h-5 w-auto object-contain" />
+                  <img src={gallery.brandingLogoUrl} alt={displayName} loading="eager" decoding="async" className="h-5 w-auto object-contain" />
                 ) : (
                   <Camera className="w-3.5 h-3.5 text-primary" />
                 )}

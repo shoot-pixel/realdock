@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   ExternalLink, Copy, Images, Lock, Link2, Globe, Check, Palette, Code2,
-  Upload, ImageIcon, Loader2, Building2, X, LayoutGrid, CheckSquare,
+  Upload, ImageIcon, Loader2, Building2, X, GripVertical, Plus,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -36,12 +36,11 @@ const GALLERY_THEMES = [
   { id: "slate",       name: "Slate",         description: "Cool gray, modern",      bg: "#141B23", card: "#1A2230",  text: "#DEE7F2", accent: "#6FA6D4", border: "#1F2D3E" },
 ];
 
-// ─── Logo / image upload helper ───────────────────────────────────────────────
+// ─── Upload helper ────────────────────────────────────────────────────────────
 
 async function uploadFileToStorage(file: File): Promise<string> {
   const token = localStorage.getItem("sf_token");
   if (!token) throw new Error("Not authenticated");
-
   const urlRes = await fetch("/api/storage/uploads/request-url", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -49,18 +48,12 @@ async function uploadFileToStorage(file: File): Promise<string> {
   });
   if (!urlRes.ok) throw new Error("Failed to get upload URL");
   const { uploadURL, objectPath } = await urlRes.json();
-
-  const putRes = await fetch(uploadURL, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
+  const putRes = await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
   if (!putRes.ok) throw new Error("Failed to upload file");
-
   return `/api/storage${objectPath}`;
 }
 
-// ─── Single-image upload zone ─────────────────────────────────────────────────
+// ─── Image upload zone ────────────────────────────────────────────────────────
 
 interface ImageUploadProps {
   label: string;
@@ -105,12 +98,9 @@ function ImageUploadZone({ label, currentUrl, onUploaded, onClear, accept = "ima
       <label className="text-sm font-medium text-foreground">{label}</label>
       {currentUrl ? (
         <div className="relative rounded-xl overflow-hidden border border-border bg-muted h-32">
-          <img src={currentUrl} alt={label} className="w-full h-full object-contain p-2" />
+          <img src={currentUrl} alt={label} loading="lazy" decoding="async" className="w-full h-full object-contain p-2" />
           {onClear && (
-            <button
-              onClick={onClear}
-              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/80 hover:bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <button onClick={onClear} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/80 hover:bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -122,9 +112,7 @@ function ImageUploadZone({ label, currentUrl, onUploaded, onClear, accept = "ima
           onDragLeave={e => { e.preventDefault(); if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false); }}
           onDrop={onDrop}
           onClick={() => !uploading && inputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-            isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/40"
-          }`}
+          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/40"}`}
         >
           <input ref={inputRef} type="file" accept={accept} className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
@@ -146,6 +134,108 @@ function ImageUploadZone({ label, currentUrl, onUploaded, onClear, accept = "ima
   );
 }
 
+// ─── Drag-sortable photo grid ─────────────────────────────────────────────────
+
+interface DraggablePhotoGridProps {
+  orderedIds: number[];
+  mediaMap: Record<number, { id: number; filename: string; thumbnailUrl?: string | null; originalUrl: string }>;
+  onChange: (next: number[]) => void;
+}
+
+function DraggablePhotoGrid({ orderedIds, mediaMap, onChange }: DraggablePhotoGridProps) {
+  const dragIdx = useRef<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const handleDragStart = (i: number) => {
+    dragIdx.current = i;
+  };
+
+  const handleDragOver = (e: React.DragEvent, i: number) => {
+    e.preventDefault();
+    setDragOverIdx(i);
+  };
+
+  const handleDrop = (e: React.DragEvent, i: number) => {
+    e.preventDefault();
+    const src = dragIdx.current;
+    if (src === null || src === i) { setDragOverIdx(null); return; }
+    const next = [...orderedIds];
+    const [item] = next.splice(src, 1);
+    next.splice(i, 0, item);
+    onChange(next);
+    dragIdx.current = null;
+    setDragOverIdx(null);
+  };
+
+  const handleDragEnd = () => {
+    dragIdx.current = null;
+    setDragOverIdx(null);
+  };
+
+  const removeAt = (i: number) => {
+    const next = [...orderedIds];
+    next.splice(i, 1);
+    onChange(next);
+  };
+
+  if (orderedIds.length === 0) {
+    return (
+      <div className="text-center py-8 border-2 border-dashed border-border rounded-xl">
+        <Images className="w-7 h-7 mx-auto mb-2 text-muted-foreground/30" />
+        <p className="text-sm text-muted-foreground">No photos added yet — pick from the available photos below.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+      {orderedIds.map((id, i) => {
+        const m = mediaMap[id];
+        if (!m) return null;
+        const isOver = dragOverIdx === i;
+        return (
+          <div
+            key={id}
+            draggable
+            onDragStart={() => handleDragStart(i)}
+            onDragOver={e => handleDragOver(e, i)}
+            onDrop={e => handleDrop(e, i)}
+            onDragEnd={handleDragEnd}
+            data-testid={`draggable-media-${id}`}
+            className={`group relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-grab active:cursor-grabbing select-none ${
+              isOver ? "border-primary scale-95 opacity-60" : "border-primary/60 hover:border-primary"
+            }`}
+          >
+            <img
+              src={m.thumbnailUrl ?? m.originalUrl}
+              alt={m.filename}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover pointer-events-none"
+            />
+            {/* Position number */}
+            <div className="absolute bottom-1 left-1 min-w-[18px] h-[18px] bg-black/60 rounded text-[10px] font-semibold text-white flex items-center justify-center px-1">
+              {i + 1}
+            </div>
+            {/* Grip hint */}
+            <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <GripVertical className="w-3.5 h-3.5 text-white drop-shadow" />
+            </div>
+            {/* Remove button */}
+            <button
+              onClick={() => removeAt(i)}
+              data-testid={`remove-media-${id}`}
+              className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-white"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function GalleryManagePage() {
@@ -162,13 +252,15 @@ export default function GalleryManagePage() {
   const currentVisibility = (gallery?.visibility as Visibility | undefined) ?? "link_only";
   const currentTheme = gallery?.theme ?? "studio-dark";
 
-  // Local state for fields that need Save buttons
+  // Local state
   const [customCss, setCustomCss]         = useState("");
   const [cssEdited, setCssEdited]         = useState(false);
   const [companyName, setCompanyName]     = useState("");
   const [companyEdited, setCompanyEdited] = useState(false);
-  const [selectedMediaIds, setSelectedMediaIds] = useState<Set<number>>(new Set());
-  const [mediaSelectionChanged, setMediaSelectionChanged] = useState(false);
+
+  // Ordered media IDs (array — position = gallery sort order)
+  const [orderedIds, setOrderedIds] = useState<number[]>([]);
+  const [mediaChanged, setMediaChanged] = useState(false);
 
   useEffect(() => {
     if (gallery?.customCss != null) setCustomCss(gallery.customCss ?? "");
@@ -177,9 +269,14 @@ export default function GalleryManagePage() {
 
   useEffect(() => {
     if (gallery?.mediaIds) {
-      setSelectedMediaIds(new Set(gallery.mediaIds));
+      setOrderedIds(gallery.mediaIds);
     }
   }, [gallery?.mediaIds]);
+
+  // Build a map for fast lookup
+  const mediaMap = Object.fromEntries((allMedia ?? []).map(m => [m.id, m]));
+  const includedSet = new Set(orderedIds);
+  const availableMedia = (allMedia ?? []).filter(m => !includedSet.has(m.id));
 
   // ── Mutation helper ──────────────────────────────────────────────────────────
   const mutate = (data: Parameters<typeof updateGallery.mutate>[0]["data"], successMsg: string, cb?: () => void) => {
@@ -198,30 +295,18 @@ export default function GalleryManagePage() {
     toast({ title: "Link copied to clipboard" });
   };
 
-  // ── Media selection helpers ──────────────────────────────────────────────────
-  const toggleMedia = (id: number) => {
-    setSelectedMediaIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-    setMediaSelectionChanged(true);
+  const handleOrderChange = (next: number[]) => {
+    setOrderedIds(next);
+    setMediaChanged(true);
   };
 
-  const selectAll = () => {
-    setSelectedMediaIds(new Set((allMedia ?? []).map(m => m.id)));
-    setMediaSelectionChanged(true);
+  const addMedia = (id: number) => {
+    setOrderedIds(prev => [...prev, id]);
+    setMediaChanged(true);
   };
 
-  const clearAll = () => {
-    setSelectedMediaIds(new Set());
-    setMediaSelectionChanged(true);
-  };
-
-  const saveMediaSelection = () => {
-    mutate({ mediaIds: Array.from(selectedMediaIds) }, "Gallery photos updated", () => {
-      setMediaSelectionChanged(false);
-    });
+  const saveMediaOrder = () => {
+    mutate({ mediaIds: orderedIds }, "Gallery photos saved", () => setMediaChanged(false));
   };
 
   // ─── Loading / not found ──────────────────────────────────────────────────────
@@ -284,65 +369,65 @@ export default function GalleryManagePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <LayoutGrid className="w-4 h-4 text-muted-foreground" />
-                <CardTitle className="text-sm">Photos in Gallery</CardTitle>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {selectedMediaIds.size} of {allMedia?.length ?? 0} selected
-                </span>
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={selectAll}>
-                  <CheckSquare className="w-3.5 h-3.5 mr-1" /> All
-                </Button>
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearAll}>
-                  <X className="w-3.5 h-3.5 mr-1" /> None
-                </Button>
-              </div>
+              <CardTitle className="text-sm">Photos in Gallery</CardTitle>
+              <span className="text-xs text-muted-foreground">
+                {orderedIds.length} of {allMedia?.length ?? 0} selected
+              </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Select which photos appear in the client gallery. If none are selected, all project photos are shown.
+              Drag photos to reorder. Clients see them in this exact order. Click a photo below to add it.
             </p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {!allMedia || allMedia.length === 0 ? (
-              <div className="text-center py-8">
-                <Images className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">No photos uploaded to this project yet.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
-                {allMedia.map(m => {
-                  const selected = selectedMediaIds.has(m.id);
-                  return (
+          <CardContent className="space-y-5">
+            {/* Ordered / draggable included photos */}
+            <DraggablePhotoGrid
+              orderedIds={orderedIds}
+              mediaMap={mediaMap}
+              onChange={handleOrderChange}
+            />
+
+            {/* Available (not yet included) photos */}
+            {availableMedia.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Available — click to add</p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+                  {availableMedia.map(m => (
                     <button
                       key={m.id}
-                      onClick={() => toggleMedia(m.id)}
-                      data-testid={`toggle-media-${m.id}`}
-                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                        selected ? "border-primary" : "border-transparent hover:border-muted-foreground/30"
-                      }`}
+                      onClick={() => addMedia(m.id)}
+                      data-testid={`add-media-${m.id}`}
+                      className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary/50 transition-all"
                     >
                       <img
                         src={m.thumbnailUrl ?? m.originalUrl}
                         alt={m.filename}
-                        className={`w-full h-full object-cover transition-opacity ${selected ? "" : "opacity-60 hover:opacity-80"}`}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover opacity-50 group-hover:opacity-90 transition-opacity"
                       />
-                      {selected && (
-                        <div className="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow">
-                          <Check className="w-3 h-3 text-primary-foreground" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow">
+                          <Plus className="w-3.5 h-3.5 text-primary-foreground" />
                         </div>
-                      )}
+                      </div>
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             )}
-            {mediaSelectionChanged && (
-              <div className="flex justify-end">
-                <Button size="sm" onClick={saveMediaSelection} disabled={updateGallery.isPending}>
-                  {updateGallery.isPending ? "Saving…" : "Save Selection"}
-                </Button>
+
+            {/* Save button */}
+            {mediaChanged && (
+              <div className="flex items-center justify-between pt-1 border-t border-border">
+                <p className="text-xs text-muted-foreground">You have unsaved changes to the photo order.</p>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => { setOrderedIds(gallery.mediaIds ?? []); setMediaChanged(false); }}>
+                    Discard
+                  </Button>
+                  <Button size="sm" onClick={saveMediaOrder} disabled={updateGallery.isPending} data-testid="button-save-media-order">
+                    {updateGallery.isPending ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Saving…</> : "Save Order"}
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
@@ -413,7 +498,6 @@ export default function GalleryManagePage() {
             </p>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* Company name */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Company / Studio Name</label>
               <div className="flex gap-2">
@@ -435,7 +519,6 @@ export default function GalleryManagePage() {
               <p className="text-[11px] text-muted-foreground">Shown in the gallery header and footer. Leave blank to use your account name.</p>
             </div>
 
-            {/* Logo upload */}
             <ImageUploadZone
               label="Logo"
               currentUrl={gallery.brandingLogoUrl}
@@ -458,7 +541,6 @@ export default function GalleryManagePage() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Pick from project media */}
             {allMedia && allMedia.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">Pick from project photos</p>
@@ -474,7 +556,7 @@ export default function GalleryManagePage() {
                           isCover ? "border-primary" : "border-transparent hover:border-primary/40"
                         }`}
                       >
-                        <img src={m.thumbnailUrl ?? m.originalUrl} alt={m.filename} className="w-full h-full object-cover" />
+                        <img src={m.thumbnailUrl ?? m.originalUrl} alt={m.filename} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                         {isCover && (
                           <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
                             <Check className="w-4 h-4 text-primary" />
@@ -487,12 +569,11 @@ export default function GalleryManagePage() {
               </div>
             )}
 
-            {/* Or upload new cover */}
             <ImageUploadZone
               label="Or upload a cover image"
               currentUrl={gallery.coverImageUrl}
-              hint="Landscape 16:9 works best · JPEG or PNG"
-              onUploaded={url => mutate({ coverImageUrl: url }, "Cover image uploaded")}
+              hint="Landscape orientation recommended · min 1400px wide"
+              onUploaded={url => mutate({ coverImageUrl: url }, "Cover image set")}
               onClear={() => mutate({ coverImageUrl: null }, "Cover image removed")}
             />
           </CardContent>
@@ -505,41 +586,35 @@ export default function GalleryManagePage() {
               <Palette className="w-4 h-4 text-muted-foreground" />
               <CardTitle className="text-sm">Gallery Theme</CardTitle>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">Choose how the client-facing gallery looks.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Choose the visual style of your client gallery.</p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" data-testid="theme-grid">
-              {GALLERY_THEMES.map(theme => {
-                const isSelected = currentTheme === theme.id;
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {GALLERY_THEMES.map(t => {
+                const isSelected = currentTheme === t.id;
                 return (
                   <button
-                    key={theme.id}
-                    onClick={() => mutate({ theme: theme.id }, "Theme updated")}
-                    data-testid={`theme-option-${theme.id}`}
-                    className={`relative rounded-xl border-2 overflow-hidden text-left transition-all ${
-                      isSelected ? "border-primary shadow-md" : "border-border hover:border-muted-foreground/40"
+                    key={t.id}
+                    onClick={() => mutate({ theme: t.id }, `Theme set to ${t.name}`)}
+                    data-testid={`theme-${t.id}`}
+                    className={`relative flex flex-col gap-2 p-3 rounded-xl border-2 text-left transition-all ${
+                      isSelected ? "border-primary" : "border-border hover:border-muted-foreground/40"
                     }`}
                   >
-                    <div className="h-16 flex flex-col p-2 gap-1.5" style={{ backgroundColor: theme.bg, borderBottom: `1px solid ${theme.border}` }}>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: theme.accent }} />
-                        <div className="h-1.5 rounded-full w-14 opacity-60" style={{ backgroundColor: theme.text }} />
-                      </div>
-                      <div className="grid grid-cols-3 gap-1 mt-0.5">
-                        {[theme.card, theme.border, theme.accent].map((c, i) => (
-                          <div key={i} className="h-5 rounded-md" style={{ backgroundColor: c, opacity: i === 1 ? 0.5 : 1 }} />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="px-3 py-2 bg-card">
-                      <p className="text-xs font-semibold text-foreground truncate">{theme.name}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">{theme.description}</p>
-                    </div>
                     {isSelected && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow">
-                        <Check className="w-3 h-3 text-primary-foreground" />
+                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-primary-foreground" />
                       </div>
                     )}
+                    <div className="flex gap-1.5">
+                      {[t.bg, t.card, t.accent].map((c, i) => (
+                        <div key={i} className="w-5 h-5 rounded-full border border-border" style={{ background: c }} />
+                      ))}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{t.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{t.description}</p>
+                    </div>
                   </button>
                 );
               })}
@@ -554,45 +629,28 @@ export default function GalleryManagePage() {
               <Code2 className="w-4 h-4 text-muted-foreground" />
               <CardTitle className="text-sm">Custom CSS</CardTitle>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">Applied on top of the selected theme.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Override any gallery style with your own CSS.</p>
           </CardHeader>
           <CardContent className="space-y-3">
             <Textarea
               value={customCss}
               onChange={e => { setCustomCss(e.target.value); setCssEdited(true); }}
-              placeholder={`.gallery-portal {\n  font-family: 'Georgia', serif;\n}`}
-              className="font-mono text-xs min-h-[120px] resize-y bg-muted/50 border-border"
-              data-testid="textarea-custom-css"
+              placeholder=".gallery-header { font-family: 'Your Font', serif; }"
+              className="font-mono text-xs min-h-[100px] resize-y"
+              data-testid="input-custom-css"
             />
             <div className="flex justify-end">
               <Button
                 size="sm"
                 variant={cssEdited ? "default" : "outline"}
-                onClick={() => mutate({ customCss: customCss || null }, "CSS saved", () => setCssEdited(false))}
                 disabled={!cssEdited || updateGallery.isPending}
-                data-testid="button-save-custom-css"
+                onClick={() => mutate({ customCss: customCss || null }, "CSS saved", () => setCssEdited(false))}
               >
-                {updateGallery.isPending ? "Saving…" : "Save CSS"}
+                Save CSS
               </Button>
             </div>
           </CardContent>
         </Card>
-
-        {/* ── Analytics ──────────────────────────────────────────────────────── */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="p-5">
-              <p className="text-2xl font-bold">{gallery.viewCount}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Total views</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-5">
-              <p className="text-2xl font-bold">{gallery.downloadCount}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Downloads</p>
-            </CardContent>
-          </Card>
-        </div>
 
       </div>
     </Layout>
