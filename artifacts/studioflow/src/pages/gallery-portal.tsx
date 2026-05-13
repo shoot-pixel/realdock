@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRoute } from "wouter";
 import { useGetPublicGallery } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,6 +85,24 @@ export default function GalleryPortalPage() {
 
   const prev = useCallback(() => setLightboxIndex(i => (i !== null && i > 0 ? i - 1 : i)), []);
   const next = useCallback(() => setLightboxIndex(i => (i !== null && i < media.length - 1 ? i + 1 : i)), [media.length]);
+
+  const touchStartXRef = useRef<number | null>(null);
+  const swipedRef = useRef(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    swipedRef.current = false;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (Math.abs(deltaX) < 40) return;
+    swipedRef.current = true;
+    if (deltaX < 0) next();
+    else prev();
+  }, [prev, next]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -361,7 +379,9 @@ export default function GalleryPortalPage() {
         <div
           className="fixed inset-0 z-50 bg-black/96 backdrop-blur-sm flex items-center justify-center"
           data-testid="lightbox"
-          onClick={() => setLightboxIndex(null)}
+          onClick={e => { if (swipedRef.current) { swipedRef.current = false; return; } if (e.target === e.currentTarget) setLightboxIndex(null); }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
           <button
             className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
