@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Camera, FolderOpen, Share2, Zap, Eye, Shield, ArrowRight,
   Check, ImageIcon, Home, SunMedium, Layers, Sparkles, Star,
-  ChevronRight, Play, Images, BarChart3, Globe, Menu, X
+  ChevronRight, Play, Images, BarChart3, Globe, Lock, Menu, X
 } from "lucide-react";
 
 // ── Responsive styles ───────────────────────────────────────────────────────
@@ -321,7 +321,7 @@ export default function Landing() {
             </Link>
             <Link href="/register">
               <span style={{ fontSize: 13, fontWeight: 600, color: "#111316", background: "#C9A96E", padding: "7px 16px", borderRadius: 6, cursor: "pointer" }} data-testid="link-register">
-                Get Started Free
+                Request Beta Access
               </span>
             </Link>
           </div>
@@ -353,7 +353,7 @@ export default function Landing() {
               </Link>
               <Link href="/register">
                 <span style={{ flex: 1, display: "block", textAlign: "center", fontSize: 13, fontWeight: 600, color: "#111316", background: "#C9A96E", padding: "9px 16px", borderRadius: 6, cursor: "pointer" }} data-testid="link-register">
-                  Get Started Free
+                  Beta Access
                 </span>
               </Link>
             </div>
@@ -387,7 +387,7 @@ export default function Landing() {
                     background: "#C9A96E", color: "#111316", fontWeight: 600,
                     padding: "12px 24px", borderRadius: 7, fontSize: 14, cursor: "pointer",
                   }}>
-                    Get Started Free <ArrowRight size={15} />
+                    Request Beta Access <ArrowRight size={15} />
                   </span>
                 </Link>
                 <Link href="/gallery/demo-gallery-001">
@@ -401,9 +401,9 @@ export default function Landing() {
                 </Link>
               </div>
               <div className="landing-hero-badges" style={{ marginTop: 28 }}>
-                {["No credit card required", "Setup in 2 minutes", "Cancel anytime"].map(t => (
+                {["Invite-only beta", "Invite code required", "Limited spots available"].map(t => (
                   <div key={t} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#5A5C62" }}>
-                    <Check size={12} color="#C9A96E" />
+                    <Lock size={12} color="#C9A96E" />
                     {t}
                   </div>
                 ))}
@@ -699,11 +699,15 @@ export default function Landing() {
       <section className="landing-section-pad" style={{ maxWidth: 1200, margin: "0 auto", textAlign: "center" }}>
         <Reveal>
           <div style={{ maxWidth: 600, margin: "0 auto" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(201,169,110,0.1)", border: "1px solid rgba(201,169,110,0.25)", borderRadius: 99, padding: "5px 14px", marginBottom: 20 }}>
+              <Lock size={11} color="#C9A96E" />
+              <span style={{ fontSize: 11.5, color: "#C9A96E", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Invite-Only Beta</span>
+            </div>
             <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 38, fontWeight: 600, color: "#F0EDE7", letterSpacing: "-0.01em", marginBottom: 16, lineHeight: 1.15 }}>
               Ready to Elevate Your Real Estate Media Business?
             </h2>
             <p style={{ fontSize: 15, color: "#6A6C72", marginBottom: 32, lineHeight: 1.6 }}>
-              Join photographers and videographers who are delivering faster, looking more professional, and growing their studio with RealDock.
+              RealDock is invite-only during beta. Join photographers and videographers who are already delivering faster, looking more professional, and growing their studio.
             </p>
             <div className="landing-cta-row" style={{ justifyContent: "center", gap: 12 }}>
               <Link href="/register">
@@ -712,7 +716,7 @@ export default function Landing() {
                   background: "#C9A96E", color: "#111316", fontWeight: 600,
                   padding: "13px 28px", borderRadius: 7, fontSize: 14.5, cursor: "pointer",
                 }}>
-                  Get Started Free <ArrowRight size={15} />
+                  Request Beta Access <ArrowRight size={15} />
                 </span>
               </Link>
               <Link href="/login">
@@ -725,7 +729,7 @@ export default function Landing() {
                 </span>
               </Link>
             </div>
-            <p style={{ marginTop: 18, fontSize: 12.5, color: "#3E4048" }}>Free plan available · No credit card required · Cancel anytime</p>
+            <p style={{ marginTop: 18, fontSize: 12.5, color: "#3E4048" }}>Invite code required · Limited beta spots · Apply now</p>
           </div>
         </Reveal>
       </section>
@@ -737,7 +741,7 @@ export default function Landing() {
           <span style={{ fontSize: 15, fontWeight: 600, color: "#4A4C52" }}>RealDock</span>
         </div>
         <div className="landing-footer-links">
-          {["Features", "Pricing", "Log In", "Sign Up"].map(l => (
+          {["Features", "Pricing", "Log In", "Beta Access"].map(l => (
             <span key={l} style={{ fontSize: 12.5, color: "#3E4048", cursor: "pointer" }}>{l}</span>
           ))}
         </div>

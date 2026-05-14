@@ -74,7 +74,15 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   });
 });
 
+const INVITE_CODE = "REALDOCK2026";
+
 router.post("/auth/register", async (req, res): Promise<void> => {
+  const inviteCode = (req.body as Record<string, unknown>).inviteCode;
+  if (inviteCode !== INVITE_CODE) {
+    res.status(403).json({ error: "Invalid invite code. RealDock is currently invite-only." });
+    return;
+  }
+
   const parsed = RegisterBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
