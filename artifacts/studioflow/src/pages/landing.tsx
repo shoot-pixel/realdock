@@ -682,13 +682,13 @@ export default function Landing() {
               {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C9A96E" color="#C9A96E" />)}
             </div>
             <blockquote style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontStyle: "italic", color: "#D8D5D0", lineHeight: 1.65, marginBottom: 28 }}>
-              "RealDock transformed how I deliver to luxury clients. My galleries look world-class and my turnaround time dropped by 60%. The AI tools alone save me four hours per listing."
+              "RealDock gave my clients a premium experience from start to finish. They loved the galleries, listing previews, and social content tools, and the platform is incredibly easy to organize and navigate compared to anything else I’ve used."
             </blockquote>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
               <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg, #C9A96E, #9A7A48)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 600, color: "#111316" }}>E</div>
               <div style={{ textAlign: "left" }}>
                 <p style={{ fontSize: 13.5, fontWeight: 600, color: "#D0CEC9" }}>Elena Vasquez</p>
-                <p style={{ fontSize: 12, color: "#5A5C62" }}>Principal Photographer, V+E Studios · Los Angeles</p>
+                <p style={{ fontSize: 12, color: "#5A5C62" }}>Principal Photographer · Los Angeles</p>
               </div>
             </div>
           </Reveal>
