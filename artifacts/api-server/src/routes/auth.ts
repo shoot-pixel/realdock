@@ -75,7 +75,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   });
 });
 
-const INVITE_CODE = "REALDOCK2026";
+const INVITE_CODE = "SOSPECIAL2026";
 
 router.post("/auth/register", async (req, res): Promise<void> => {
   const inviteCode = (req.body as Record<string, unknown>).inviteCode;

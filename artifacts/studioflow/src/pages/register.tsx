@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth-context";
 
-const INVITE_CODE = "REALDOCK2026";
+const INVITE_CODE = "SOSPECIAL2026";
 
 const schema = z.object({
   inviteCode: z.string().min(1, "Invite code required").refine(
