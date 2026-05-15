@@ -245,14 +245,14 @@ function GalleryMock() {
 
 const PLANS = [
   {
-    name: "Free",
-    price: "$0",
+    name: "Starter",
+    price: "$9.99",
     period: "/month",
     storage: "2 GB",
     credits: "No AI credits",
-    description: "For photographers just getting started.",
+    description: "For photographers just getting started. 7-day free trial.",
     features: ["5 active projects", "Public galleries", "Standard support"],
-    cta: "Get Started Free",
+    cta: "Start Free Trial",
     highlight: false,
   },
   {
