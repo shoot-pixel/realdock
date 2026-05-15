@@ -66,6 +66,31 @@ const checkoutSchema = z.object({ planKey: z.enum(["starter", "pro", "studio"]) 
 /** Number of free trial days per plan key (0 / omit = no trial) */
 const TRIAL_DAYS: Partial<Record<string, number>> = { starter: 7 };
 
+/**
+ * Find the monthly price ID for a plan by querying the Stripe API directly.
+ * This bypasses the stripe-replit-sync DB tables entirely so it works even
+ * when the backfill hasn't populated local tables yet.
+ */
+async function getPriceIdFromStripe(stripe: Awaited<ReturnType<typeof getUncachableStripeClient>>, planKey: string): Promise<string | null> {
+  // Search for the product by plan_key metadata
+  const products = await stripe.products.search({
+    query: `metadata['plan_key']:'${planKey}' AND active:'true'`,
+    limit: 1,
+  });
+  const product = products.data[0];
+  if (!product) return null;
+
+  // Find the active monthly price for this product
+  const prices = await stripe.prices.list({
+    product: product.id,
+    active: true,
+    type: "recurring",
+    limit: 10,
+  });
+  const monthly = prices.data.find(p => p.recurring?.interval === "month");
+  return monthly?.id ?? null;
+}
+
 /** POST /api/stripe/checkout — create a Stripe Checkout session */
 router.post("/stripe/checkout", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
@@ -91,10 +116,13 @@ router.post("/stripe/checkout", requireAuth, async (req: AuthenticatedRequest, r
       customerId = customer.id;
     }
 
-    const priceId = await stripeStorage.getPriceIdForPlan(planKey);
+    // Query Stripe API directly — avoids dependency on the local DB backfill
+    const priceId = await getPriceIdFromStripe(stripe, planKey);
     if (!priceId) {
+      req.log.error({ planKey }, "No active price found in Stripe for plan");
       return res.status(404).json({
-        error: `No active price found for plan "${planKey}". Run the seed-products script first.`,
+        error: `No active price found for plan "${planKey}".`,
+        hint: "Contact support or try again shortly.",
       });
     }
 
