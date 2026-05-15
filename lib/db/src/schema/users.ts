@@ -2,7 +2,7 @@ import { pgTable, text, serial, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const planEnum = pgEnum("plan", ["free", "pro", "studio"]);
+export const planEnum = pgEnum("plan", ["free", "starter", "pro", "studio"]);
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -14,6 +14,8 @@ export const usersTable = pgTable("users", {
   plan: planEnum("plan").notNull().default("free"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

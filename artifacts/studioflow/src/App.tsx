@@ -6,10 +6,12 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { useEffect, lazy, Suspense } from "react";
 
-const NotFound       = lazy(() => import("@/pages/not-found"));
-const Landing        = lazy(() => import("@/pages/landing"));
-const LoginPage      = lazy(() => import("@/pages/login"));
-const RegisterPage   = lazy(() => import("@/pages/register"));
+const NotFound          = lazy(() => import("@/pages/not-found"));
+const Landing           = lazy(() => import("@/pages/landing"));
+const LoginPage         = lazy(() => import("@/pages/login"));
+const RegisterPage      = lazy(() => import("@/pages/register"));
+const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password"));
+const ResetPasswordPage  = lazy(() => import("@/pages/reset-password"));
 const DashboardPage  = lazy(() => import("@/pages/dashboard"));
 const ProjectsPage   = lazy(() => import("@/pages/projects"));
 const EditProjectPage = lazy(() => import("@/pages/edit-project"));
@@ -76,6 +78,8 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/login" component={LoginPage} />
         <Route path="/register" component={RegisterPage} />
+        <Route path="/forgot-password" component={ForgotPasswordPage} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/gallery/:token" component={GalleryPortalPage} />
         <Route path="/invoice/:token" component={InvoicePortalPage} />
         <Route path="/dashboard">

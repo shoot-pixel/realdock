@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { LoginBody, RegisterBody } from "@workspace/api-zod";
 import { createHash, randomBytes } from "crypto";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -117,6 +118,86 @@ router.post("/auth/register", async (req, res): Promise<void> => {
 });
 
 router.post("/auth/logout", async (_req, res): Promise<void> => {
+  res.json({ success: true });
+});
+
+/** POST /api/auth/forgot-password — generate a password reset token and (when email is live) send it */
+router.post("/auth/forgot-password", async (req, res): Promise<void> => {
+  const body = req.body as Record<string, unknown>;
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : null;
+
+  if (!email) {
+    res.status(400).json({ error: "Email is required" });
+    return;
+  }
+
+  // Look up user — always return success to prevent enumeration
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+
+  if (user) {
+    const token = randomBytes(32).toString("hex");
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await db.update(usersTable).set({
+      resetToken: token,
+      resetTokenExpiry: expiry,
+    }).where(eq(usersTable.id, user.id));
+
+    // TODO: When support@realdock.ai is active, send the email here via your email provider.
+    // The reset link to include in the email:
+    const resetPath = `/reset-password?token=${token}`;
+    logger.info(
+      { email: user.email, resetPath },
+      "Password reset requested — send reset link to user (email delivery not yet configured)",
+    );
+  }
+
+  res.json({
+    success: true,
+    message: "If an account exists with that email address, a reset link has been sent.",
+  });
+});
+
+/** POST /api/auth/reset-password — validate token and set new password */
+router.post("/auth/reset-password", async (req, res): Promise<void> => {
+  const body = req.body as Record<string, unknown>;
+  const token = typeof body.token === "string" ? body.token.trim() : null;
+  const password = typeof body.password === "string" ? body.password : null;
+
+  if (!token || !password) {
+    res.status(400).json({ error: "Token and new password are required" });
+    return;
+  }
+  if (password.length < 8) {
+    res.status(400).json({ error: "Password must be at least 8 characters" });
+    return;
+  }
+
+  const now = new Date();
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(
+      and(
+        eq(usersTable.resetToken, token),
+        sql`${usersTable.resetTokenExpiry} > ${now}`,
+      ),
+    );
+
+  if (!user) {
+    res.status(400).json({
+      error: "This reset link is invalid or has expired. Please request a new one.",
+    });
+    return;
+  }
+
+  await db.update(usersTable).set({
+    passwordHash: hashPassword(password),
+    resetToken: null,
+    resetTokenExpiry: null,
+  }).where(eq(usersTable.id, user.id));
+
   res.json({ success: true });
 });
 

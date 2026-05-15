@@ -6,15 +6,18 @@
  *
  * Run with:
  *   pnpm --filter @workspace/scripts run seed-products
- *
- * ─── PREREQUISITE ──────────────────────────────────────────────────────────
- *  Connect Stripe via the Integrations tab in Replit before running this.
- * ───────────────────────────────────────────────────────────────────────────
  */
 
 import { getUncachableStripeClient } from "./stripeClient";
 
 const PLANS = [
+  {
+    planKey: "starter",
+    name: "Starter",
+    description: "5 active projects · Public galleries · Standard support · 7-day free trial",
+    monthlyAmount: 999,    // $9.99
+    yearlyAmount: 9590,    // $95.90 (~20% off)
+  },
   {
     planKey: "pro",
     name: "Pro",
@@ -36,7 +39,6 @@ async function seedProducts() {
   console.log("Connected to Stripe. Seeding RealDock products…\n");
 
   for (const plan of PLANS) {
-    // Check if this product already exists
     const existing = await stripe.products.search({
       query: `metadata['plan_key']:'${plan.planKey}' AND active:'true'`,
     });
@@ -47,7 +49,6 @@ async function seedProducts() {
       continue;
     }
 
-    // Create product
     const product = await stripe.products.create({
       name: `RealDock ${plan.name}`,
       description: plan.description,
@@ -55,7 +56,6 @@ async function seedProducts() {
     });
     console.log(`Created product: ${product.name} (${product.id})`);
 
-    // Monthly price
     const monthly = await stripe.prices.create({
       product: product.id,
       unit_amount: plan.monthlyAmount,
@@ -65,7 +65,6 @@ async function seedProducts() {
     });
     console.log(`  Monthly: $${plan.monthlyAmount / 100}/mo (${monthly.id})`);
 
-    // Annual price
     const yearly = await stripe.prices.create({
       product: product.id,
       unit_amount: plan.yearlyAmount,

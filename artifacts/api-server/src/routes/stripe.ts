@@ -61,14 +61,17 @@ router.get("/stripe/products", async (req, res) => {
   }
 });
 
-const checkoutSchema = z.object({ planKey: z.enum(["pro", "studio"]) });
+const checkoutSchema = z.object({ planKey: z.enum(["starter", "pro", "studio"]) });
+
+/** Number of free trial days per plan key (0 / omit = no trial) */
+const TRIAL_DAYS: Partial<Record<string, number>> = { starter: 7 };
 
 /** POST /api/stripe/checkout — create a Stripe Checkout session */
 router.post("/stripe/checkout", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const parsed = checkoutSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: "planKey must be 'pro' or 'studio'" });
+      return res.status(400).json({ error: "planKey must be 'starter', 'pro', or 'studio'" });
     }
 
     const { planKey } = parsed.data;
@@ -96,6 +99,8 @@ router.post("/stripe/checkout", requireAuth, async (req: AuthenticatedRequest, r
     }
 
     const host = `${req.protocol}://${req.get("host")}`;
+    const trialDays = TRIAL_DAYS[planKey];
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
@@ -103,6 +108,7 @@ router.post("/stripe/checkout", requireAuth, async (req: AuthenticatedRequest, r
       mode: "subscription",
       success_url: `${host}/settings?checkout=success`,
       cancel_url: `${host}/settings?checkout=cancel`,
+      ...(trialDays ? { subscription_data: { trial_period_days: trialDays } } : {}),
     });
 
     return res.json({ url: session.url });
@@ -130,6 +136,46 @@ router.post("/stripe/portal", requireAuth, async (req: AuthenticatedRequest, res
     return res.json({ url: session.url });
   } catch (err) {
     req.log.error({ err }, "stripe/portal error");
+    return res.status(503).json(STRIPE_UNAVAILABLE);
+  }
+});
+
+/** POST /api/stripe/cancel — cancel subscription at period end */
+router.post("/stripe/cancel", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const user = await stripeStorage.getUser(req.userId!);
+    if (!user?.stripeSubscriptionId) {
+      return res.status(400).json({ error: "No active subscription found" });
+    }
+
+    const stripe = await getUncachableStripeClient();
+    const sub = await stripe.subscriptions.update(user.stripeSubscriptionId, {
+      cancel_at_period_end: true,
+    });
+
+    return res.json({ success: true, cancelAt: sub.cancel_at });
+  } catch (err) {
+    req.log.error({ err }, "stripe/cancel error");
+    return res.status(503).json(STRIPE_UNAVAILABLE);
+  }
+});
+
+/** POST /api/stripe/reactivate — undo a scheduled cancellation */
+router.post("/stripe/reactivate", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const user = await stripeStorage.getUser(req.userId!);
+    if (!user?.stripeSubscriptionId) {
+      return res.status(400).json({ error: "No subscription found" });
+    }
+
+    const stripe = await getUncachableStripeClient();
+    await stripe.subscriptions.update(user.stripeSubscriptionId, {
+      cancel_at_period_end: false,
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "stripe/reactivate error");
     return res.status(503).json(STRIPE_UNAVAILABLE);
   }
 });
