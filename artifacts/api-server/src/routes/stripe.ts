@@ -9,7 +9,7 @@ const router = Router();
 
 const STRIPE_UNAVAILABLE = {
   error: "Stripe not configured",
-  hint: "Connect your Stripe account via the Integrations tab in Replit.",
+  hint: "Payment Account Not Configured. Contact Support",
 };
 
 /** GET /api/stripe/subscription — current user's subscription */
