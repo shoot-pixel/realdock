@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
 import {
   useGetDashboardSummary,
@@ -54,12 +56,35 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const PLAN_WELCOME: Record<string, { title: string; description: string }> = {
+  pro:    { title: "Welcome to Pro!", description: "100 GB storage, 100 AI credits/month, and priority support are now unlocked." },
+  studio: { title: "Welcome to Studio!", description: "500 GB storage, 2,000 AI credits/month, team seats, and API access are now active." },
+  starter: { title: "Welcome to RealDock!", description: "Your account is set up and ready to go." },
+};
+
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary();
   const { data: projects, isLoading: projectsLoading } = useListProjects({});
   const { data: recentGalleries, isLoading: galleriesLoading } = useListRecentGalleries();
+
+  // Show "Welcome to Pro/Studio!" toast after successful checkout redirect
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("welcome") === "1") {
+      window.history.replaceState({}, "", window.location.pathname);
+      const plan = user?.plan ?? "";
+      const msg = PLAN_WELCOME[plan];
+      if (msg) {
+        t = setTimeout(() => toast({ title: msg.title, description: msg.description }), 400);
+      }
+    }
+    return () => { if (t !== undefined) clearTimeout(t); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
 

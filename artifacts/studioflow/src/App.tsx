@@ -4,7 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const NotFound          = lazy(() => import("@/pages/not-found"));
 const Landing           = lazy(() => import("@/pages/landing"));
@@ -45,10 +46,25 @@ function PageSpinner() {
 }
 
 function AuthTokenSync() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const queryClient = useQueryClient();
+  const prevUserIdRef = useRef<number | null | undefined>(undefined);
+
   useEffect(() => {
     setAuthTokenGetter(() => token);
   }, [token]);
+
+  // Clear the entire React Query cache whenever the logged-in user changes
+  // (logout → null, or a different account logs in). This prevents stale data
+  // from one account ever being shown to another.
+  useEffect(() => {
+    const currentId = user?.id ?? null;
+    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== currentId) {
+      queryClient.clear();
+    }
+    prevUserIdRef.current = currentId;
+  }, [user?.id, queryClient]);
+
   return null;
 }
 
