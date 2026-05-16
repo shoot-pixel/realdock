@@ -26,6 +26,14 @@ if (!basePath) {
   );
 }
 
+// Derive canonical URL from the Replit deployment domain so og:url in
+// index.html is always correct. REPLIT_DOMAINS is comma-separated; we
+// take the first entry. Falls back to the app name for local dev.
+const primaryDomain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+process.env.VITE_CANONICAL_URL = primaryDomain
+  ? `https://${primaryDomain}`
+  : "https://realdock.replit.app";
+
 export default defineConfig({
   base: basePath,
   plugins: [
