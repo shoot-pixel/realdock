@@ -295,11 +295,8 @@ export default function Landing() {
         background: "rgba(17,19,22,0.95)", backdropFilter: "blur(16px)",
       }}>
         <div className="landing-header" style={{ display: "flex", alignItems: "center", height: 60 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: "auto" }}>
-            <div style={{ width: 26, height: 26, borderRadius: 6, background: "rgba(201,169,110,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Camera size={13} color="#C9A96E" />
-            </div>
-            <span style={{ fontSize: 18, fontWeight: 600, color: "#E6E3DE" }}>RealDock</span>
+          <div style={{ marginRight: "auto", display: "flex", alignItems: "center" }}>
+            <img src="/logo.png" alt="RealDock" style={{ height: 32, width: "auto", objectFit: "contain" }} draggable={false} />
           </div>
 
           {/* Desktop nav links */}
@@ -736,9 +733,8 @@ export default function Landing() {
 
       {/* ── FOOTER ── */}
       <footer className="landing-footer" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Camera size={13} color="#C9A96E" />
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#4A4C52" }}>RealDock</span>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <img src="/logo.png" alt="RealDock" style={{ height: 22, width: "auto", objectFit: "contain", opacity: 0.5 }} draggable={false} />
         </div>
         <div className="landing-footer-links">
           {["Features", "Pricing", "Log In", "Beta Access"].map(l => (

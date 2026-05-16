@@ -1,7 +1,7 @@
 import { useRoute } from "wouter";
 import { useGetPublicInvoice } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Camera, FileText, CheckCircle2 } from "lucide-react";
+import { FileText, CheckCircle2 } from "lucide-react";
 
 export default function InvoicePortalPage() {
   const [, params] = useRoute("/invoice/:token");
@@ -59,14 +59,8 @@ export default function InvoicePortalPage() {
 
         {/* Header */}
         <div className="flex items-center justify-between mb-10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[hsl(39_52%_61%/0.12)] flex items-center justify-center">
-              <Camera className="w-4.5 h-4.5 text-[hsl(39_52%_61%)]" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">RealDock</p>
-              <p className="text-[11px] text-white/40">Professional Photography Services</p>
-            </div>
+          <div className="flex items-center">
+            <img src="/logo.png" alt="RealDock" style={{ height: 32, width: "auto", objectFit: "contain" }} draggable={false} />
           </div>
           <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColor[invoice.status] ?? statusColor["draft"]}`}>
             {statusLabel[invoice.status] ?? invoice.status}
