@@ -1,7 +1,6 @@
+# Allow crawlers on the landing page and public client galleries only.
+# All authenticated app pages are private and should not be indexed.
 User-agent: *
-Allow: /
-Disallow: /dashboard
-Disallow: /projects
-Disallow: /clients
-Disallow: /settings
-Disallow: /checkout
+Allow: /$
+Allow: /gallery/
+Disallow: /
