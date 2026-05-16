@@ -15,6 +15,7 @@ import {
 import { UpdateCurrentUserBody } from "@workspace/api-zod";
 import { requireAuth, AuthenticatedRequest } from "../lib/auth";
 import { stripeStorage } from "../stripeStorage";
+import { getUncachableStripeClient } from "../stripeClient";
 
 const router: IRouter = Router();
 
@@ -117,9 +118,9 @@ router.delete("/users/me", requireAuth, async (req: AuthenticatedRequest, res): 
 
   // Block deletion if user has an active paid subscription
   if (user.stripeSubscriptionId) {
-    const subscription = await stripeStorage.getSubscription(user.stripeSubscriptionId);
-    if (subscription) {
-      const sub = subscription as { status: string; cancel_at_period_end: boolean; current_period_end: number };
+    try {
+      const stripe = await getUncachableStripeClient();
+      const sub = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
       const isActive = ["active", "trialing"].includes(sub.status);
       if (isActive && !sub.cancel_at_period_end) {
         res.status(400).json({
@@ -128,8 +129,9 @@ router.delete("/users/me", requireAuth, async (req: AuthenticatedRequest, res): 
         });
         return;
       }
-      if (isActive && sub.cancel_at_period_end && sub.current_period_end) {
-        const periodEnd = new Date(sub.current_period_end * 1000);
+      // cancel_at is set to the period end when cancel_at_period_end is true
+      if (isActive && sub.cancel_at_period_end && sub.cancel_at) {
+        const periodEnd = new Date(sub.cancel_at * 1000);
         if (periodEnd > new Date()) {
           res.status(400).json({
             error: `Your subscription is set to cancel on ${periodEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}. You can delete your account after that date.`,
@@ -138,6 +140,8 @@ router.delete("/users/me", requireAuth, async (req: AuthenticatedRequest, res): 
           return;
         }
       }
+    } catch {
+      // Stale subscription ID — allow deletion to proceed
     }
   }
 

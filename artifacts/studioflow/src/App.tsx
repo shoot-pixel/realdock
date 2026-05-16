@@ -21,7 +21,9 @@ const GalleryManagePage = lazy(() => import("@/pages/gallery-manage"));
 const GalleryPortalPage = lazy(() => import("@/pages/gallery-portal"));
 const InvoicePortalPage = lazy(() => import("@/pages/invoice-portal"));
 const ClientsPage    = lazy(() => import("@/pages/clients"));
-const SettingsPage   = lazy(() => import("@/pages/settings"));
+const SettingsPage        = lazy(() => import("@/pages/settings"));
+const CheckoutPage        = lazy(() => import("@/pages/checkout"));
+const CheckoutReturnPage  = lazy(() => import("@/pages/checkout-return"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -105,6 +107,12 @@ function Router() {
         </Route>
         <Route path="/settings">
           {() => <ProtectedRoute component={SettingsPage} />}
+        </Route>
+        <Route path="/checkout/return">
+          {() => <ProtectedRoute component={CheckoutReturnPage} />}
+        </Route>
+        <Route path="/checkout">
+          {() => <ProtectedRoute component={CheckoutPage} />}
         </Route>
         <Route component={NotFound} />
       </Switch>

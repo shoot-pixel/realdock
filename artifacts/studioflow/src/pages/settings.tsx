@@ -82,6 +82,7 @@ export default function SettingsPage() {
   const updateUser = useUpdateCurrentUser();
 
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [changingPlan, setChangingPlan] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [reactivating, setReactivating] = useState(false);
@@ -97,6 +98,9 @@ export default function SettingsPage() {
 
   const currentPlan = user?.plan ?? "free";
   const hasPaidPlan = currentPlan !== "free";
+
+  const PLAN_ORDER: Record<string, number> = { free: 0, starter: 1, pro: 2, studio: 3 };
+  const PLAN_LABELS: Record<string, string> = { starter: "Starter", pro: "Pro", studio: "Studio" };
 
   // Fetch subscription status for cancel/trial info
   const fetchSubscription = useCallback(async () => {
@@ -159,28 +163,52 @@ export default function SettingsPage() {
     });
   };
 
-  const handleSubscribe = async (planKey: "starter" | "pro" | "studio") => {
-    setCheckingOut(planKey);
+  // Navigate to in-app embedded checkout for new subscriptions
+  const handleSubscribe = (planKey: "starter" | "pro" | "studio") => {
+    setLocation(`/checkout?plan=${planKey}`);
+  };
+
+  // For existing subscribers: upgrade (immediate + proration) or downgrade (scheduled at period end)
+  const handleChangePlan = async (planKey: "starter" | "pro" | "studio") => {
+    setChangingPlan(planKey);
     try {
-      const resp = await fetch("/api/stripe/checkout", {
+      const resp = await fetch("/api/stripe/change-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ planKey }),
       });
-      const data = await resp.json() as { url?: string; error?: string; hint?: string };
+      const data = await resp.json() as {
+        success?: boolean;
+        effective?: "immediate" | "period_end";
+        effectiveAt?: number;
+        plan?: string;
+        error?: string;
+        hint?: string;
+      };
       if (!resp.ok) {
-        toast({
-          title: "Checkout unavailable",
-          description: data.hint ?? data.error ?? "Please try again later.",
-          variant: "destructive",
-        });
+        toast({ title: data.error ?? "Could not change plan", variant: "destructive" });
         return;
       }
-      if (data.url) window.location.href = data.url;
+      if (data.effective === "immediate") {
+        toast({
+          title: `Upgraded to ${PLAN_LABELS[planKey] ?? planKey}!`,
+          description: "Your new plan is active immediately.",
+        });
+        if (user && token) login(token, { ...user, plan: planKey as typeof user.plan });
+        await fetchSubscription();
+      } else if (data.effective === "period_end" && data.effectiveAt) {
+        const date = new Date(data.effectiveAt * 1000).toLocaleDateString("en-US", {
+          month: "long", day: "numeric", year: "numeric",
+        });
+        toast({
+          title: "Downgrade scheduled",
+          description: `Your plan will switch to ${PLAN_LABELS[planKey] ?? planKey} on ${date}.`,
+        });
+      }
     } catch {
       toast({ title: "Network error", description: "Could not reach the server.", variant: "destructive" });
     } finally {
-      setCheckingOut(null);
+      setChangingPlan(null);
     }
   };
 
@@ -288,6 +316,7 @@ export default function SettingsPage() {
   };
 
   // Subscription status helpers
+  const hasActiveSub = subscription?.status === "active" || subscription?.status === "trialing";
   const subIsCanceling = subscription?.cancel_at_period_end === true;
   const subIsTrialing = subscription?.status === "trialing";
   const cancelDate = subscription?.current_period_end
@@ -404,7 +433,35 @@ export default function SettingsPage() {
           <div className="grid sm:grid-cols-3 gap-4">
             {PLANS.map(plan => {
               const isCurrentPlan = plan.dbValues.includes(currentPlan);
-              const isLoading = checkingOut === plan.planKey;
+              const isBusy = changingPlan === plan.planKey;
+              const planOrd = PLAN_ORDER[plan.planKey] ?? 0;
+              const currentOrd = PLAN_ORDER[currentPlan] ?? 0;
+              const isUpgrade = planOrd > currentOrd;
+
+              // What action clicking the button takes
+              const handleClick = () => {
+                if (isCurrentPlan) return;
+                if (hasActiveSub && !subIsCanceling) {
+                  handleChangePlan(plan.planKey);
+                } else {
+                  handleSubscribe(plan.planKey);
+                }
+              };
+
+              // Button label
+              let label: React.ReactNode = "Get Started";
+              if (isBusy) {
+                label = <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Processing…</>;
+              } else if (isCurrentPlan) {
+                label = "Current Plan";
+              } else if (hasActiveSub && !subIsCanceling) {
+                label = isUpgrade ? `Upgrade to ${plan.name}` : `Downgrade to ${plan.name}`;
+              } else if (plan.trial) {
+                label = "Start Free Trial";
+              } else {
+                label = `Subscribe — ${plan.price}/mo`;
+              }
+
               return (
                 <Card
                   key={plan.value}
@@ -423,7 +480,7 @@ export default function SettingsPage() {
                         <span className="text-2xl font-bold">{plan.price}</span>
                         <span className="text-muted-foreground text-sm">{plan.period}</span>
                       </div>
-                      {plan.trial && (
+                      {plan.trial && !hasActiveSub && (
                         <p className="text-xs text-primary font-medium mt-1">{plan.trial}</p>
                       )}
                     </div>
@@ -442,18 +499,11 @@ export default function SettingsPage() {
                       variant={isCurrentPlan ? "secondary" : plan.popular ? "default" : "outline"}
                       size="sm"
                       className="w-full"
-                      disabled={isCurrentPlan || isLoading}
-                      onClick={() => !isCurrentPlan && handleSubscribe(plan.planKey)}
+                      disabled={isCurrentPlan || isBusy || loadingSub}
+                      onClick={handleClick}
                       data-testid={`button-select-plan-${plan.value}`}
                     >
-                      {isLoading
-                        ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Redirecting…</>
-                        : isCurrentPlan
-                          ? "Current Plan"
-                          : plan.trial
-                            ? "Start Free Trial"
-                            : hasPaidPlan ? "Switch Plan" : "Upgrade"
-                      }
+                      {label}
                     </Button>
                   </CardContent>
                 </Card>
