@@ -47,7 +47,8 @@ async function getCredentials(): Promise<{ publishableKey: string; secretKey: st
     throw new Error("X-Replit-Token not found (REPL_IDENTITY / WEB_REPL_RENEWAL missing)");
   }
 
-  const isProduction = process.env["REPLIT_DEPLOYMENT"] === "1";
+  const forceSandbox = process.env["STRIPE_USE_SANDBOX"] === "true";
+  const isProduction = !forceSandbox && process.env["REPLIT_DEPLOYMENT"] === "1";
   const primaryEnv = isProduction ? "production" : "development";
   const fallbackEnv = isProduction ? "development" : null;
 

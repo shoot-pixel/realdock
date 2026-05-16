@@ -42,8 +42,11 @@ async function getStripeCredentials(): Promise<{ secretKey: string; environment:
     );
   }
 
-  // Try production first, then fall back to development
-  for (const env of ["production", "development"]) {
+  // When STRIPE_USE_SANDBOX=true, use sandbox (development) keys only
+  const forceSandbox = process.env["STRIPE_USE_SANDBOX"] === "true";
+  const envOrder = forceSandbox ? ["development"] : ["production", "development"];
+
+  for (const env of envOrder) {
     const settings = await fetchConnection(hostname, xReplitToken, env);
     if (settings?.secret) {
       return { secretKey: settings.secret, environment: env };
