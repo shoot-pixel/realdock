@@ -85,6 +85,30 @@ router.get("/stripe/subscription", requireAuth, async (req: AuthenticatedRequest
     const stripe = await getUncachableStripeClient();
     try {
       const sub = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+
+      // Detect pending plan change from an attached subscription schedule
+      let pendingPlanChange: { plan: string; effectiveAt: number } | null = null;
+      if (sub.schedule) {
+        try {
+          const scheduleId = typeof sub.schedule === "string" ? sub.schedule : (sub.schedule as { id: string }).id;
+          const schedule = await stripe.subscriptionSchedules.retrieve(scheduleId);
+          if (schedule.status === "active" && schedule.phases.length >= 2) {
+            const nextPhase = schedule.phases[1];
+            const nextItem = nextPhase?.items?.[0];
+            if (nextItem && nextPhase.start_date) {
+              const priceIdOrObj = nextItem.price;
+              const priceId = typeof priceIdOrObj === "string" ? priceIdOrObj : (priceIdOrObj as { id: string }).id;
+              const price = await stripe.prices.retrieve(priceId, { expand: ["product"] });
+              const product = price.product as Stripe.Product;
+              const planKey = product.metadata?.["plan_key"];
+              if (planKey) {
+                pendingPlanChange = { plan: planKey, effectiveAt: nextPhase.start_date };
+              }
+            }
+          }
+        } catch { /* non-fatal — don't surface schedule errors to users */ }
+      }
+
       return res.json({
         subscription: {
           status: sub.status,
@@ -93,10 +117,10 @@ router.get("/stripe/subscription", requireAuth, async (req: AuthenticatedRequest
           // When cancel_at_period_end is true, Stripe sets cancel_at = period end.
           current_period_end: sub.cancel_at ?? 0,
           trial_end: sub.trial_end,
+          pendingPlanChange,
         },
       });
     } catch {
-      // Stale subscription ID
       return res.json({ subscription: null });
     }
   } catch (err) {
@@ -141,8 +165,48 @@ router.get("/stripe/products", async (req, res) => {
   }
 });
 
-const checkoutSchema = z.object({ planKey: z.enum(["starter", "pro", "studio"]) });
+const checkoutSchema = z.object({
+  planKey: z.enum(["starter", "pro", "studio"]),
+  billingInterval: z.enum(["month", "year"]).default("month"),
+});
 const TRIAL_DAYS: Partial<Record<string, number>> = { starter: 7 };
+
+// Annual price in cents: monthly × 12 × 0.9 (10% off)
+const ANNUAL_PRICE_CENTS: Record<string, number> = {
+  pro: 52920,     // $49 × 12 × 0.9 = $529.20
+  studio: 139320, // $129 × 12 × 0.9 = $1,393.20
+};
+
+/**
+ * Finds the existing annual price for a plan, or creates one at 10% off annual.
+ * Only Pro and Studio support annual billing.
+ */
+async function getOrCreateAnnualPrice(stripe: StripeClient, planKey: string): Promise<string | null> {
+  const annualCents = ANNUAL_PRICE_CENTS[planKey];
+  if (!annualCents) return null; // Starter doesn't have annual pricing
+
+  const products = await stripe.products.search({
+    query: `metadata['plan_key']:'${planKey}' AND active:'true'`,
+    limit: 1,
+  });
+  const product = products.data[0];
+  if (!product) return null;
+
+  const prices = await stripe.prices.list({ product: product.id, active: true, type: "recurring", limit: 20 });
+  const existing = prices.data.find(p => p.recurring?.interval === "year");
+  if (existing) return existing.id;
+
+  // Create the annual price
+  const newPrice = await stripe.prices.create({
+    product: product.id,
+    currency: "usd",
+    unit_amount: annualCents,
+    recurring: { interval: "year" },
+    metadata: { plan_key: planKey, billing: "annual", discount: "10pct" },
+  });
+  logger.info({ planKey, priceId: newPrice.id, annualCents }, "Created annual Stripe price");
+  return newPrice.id;
+}
 
 /** POST /api/stripe/create-embedded-checkout — creates session for in-app embedded checkout */
 router.post("/stripe/create-embedded-checkout", requireAuth, async (req: AuthenticatedRequest, res) => {
@@ -152,21 +216,26 @@ router.post("/stripe/create-embedded-checkout", requireAuth, async (req: Authent
       return res.status(400).json({ error: "planKey must be 'starter', 'pro', or 'studio'" });
     }
 
-    const { planKey } = parsed.data;
+    const { planKey, billingInterval } = parsed.data;
     const user = await stripeStorage.getUser(req.userId!);
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const stripe = await getUncachableStripeClient();
     const customerId = await ensureStripeCustomer(stripe, user);
 
-    const priceId = await getPriceIdFromStripe(stripe, planKey);
+    // For annual billing (Pro/Studio only), find or create the annual price
+    const priceId = billingInterval === "year"
+      ? await getOrCreateAnnualPrice(stripe, planKey)
+      : await getPriceIdFromStripe(stripe, planKey);
+
     if (!priceId) {
-      return res.status(404).json({ error: `No active price found for plan "${planKey}".` });
+      return res.status(404).json({ error: `No active price found for plan "${planKey}" (${billingInterval}).` });
     }
 
     const domain = process.env["REPLIT_DOMAINS"]?.split(",")[0];
     const host = domain ? `https://${domain}` : `${req.protocol}://${req.get("host")}`;
-    const trialDays = TRIAL_DAYS[planKey];
+    // Only offer trial on monthly Starter
+    const trialDays = billingInterval === "month" ? TRIAL_DAYS[planKey] : undefined;
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

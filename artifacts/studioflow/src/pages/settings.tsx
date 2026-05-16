@@ -16,11 +16,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   UserIcon, CreditCard, Zap, Shield, Check, Loader2, ExternalLink,
-  AlertTriangle, Trash2, UserX, XCircle, RefreshCw,
+  AlertTriangle, Trash2, UserX, XCircle, RefreshCw, Clock,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { cn } from "@/lib/utils";
 
 const profileSchema = z.object({
   name: z.string().min(2),
@@ -73,7 +74,13 @@ type StripeSub = {
   cancel_at_period_end: boolean;
   current_period_end: number;
   trial_end: number | null;
+  pendingPlanChange?: { plan: string; effectiveAt: number } | null;
 } | null;
+
+const ANNUAL_PRICING: Record<string, { perMonth: string; total: string }> = {
+  pro:    { perMonth: "$44.10", total: "$529.20/yr" },
+  studio: { perMonth: "$116.10", total: "$1,393.20/yr" },
+};
 
 export default function SettingsPage() {
   const { user, login, token, logout } = useAuth();
@@ -81,6 +88,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const updateUser = useUpdateCurrentUser();
 
+  const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [changingPlan, setChangingPlan] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
@@ -165,7 +173,8 @@ export default function SettingsPage() {
 
   // Navigate to in-app embedded checkout for new subscriptions
   const handleSubscribe = (planKey: "starter" | "pro" | "studio") => {
-    setLocation(`/checkout?plan=${planKey}`);
+    const interval = planKey !== "starter" && billingInterval === "year" ? "year" : "month";
+    setLocation(`/checkout?plan=${planKey}&interval=${interval}`);
   };
 
   // For existing subscribers: upgrade (immediate + proration) or downgrade (scheduled at period end)
@@ -425,10 +434,47 @@ export default function SettingsPage() {
               </Button>
             </div>
           )}
+          {subscription?.pendingPlanChange && !subIsCanceling && (
+            <div className="mb-3 px-3 py-2 rounded-lg bg-amber-500/8 border border-amber-500/20 flex items-center gap-2 text-sm">
+              <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span>
+                <span className="text-amber-500 font-medium">Plan change scheduled — </span>
+                <span className="text-muted-foreground">
+                  Switching to{" "}
+                  <strong className="text-foreground capitalize">{subscription.pendingPlanChange.plan}</strong>
+                  {" on "}
+                  {new Date(subscription.pendingPlanChange.effectiveAt * 1000).toLocaleDateString("en-US", {
+                    month: "long", day: "numeric", year: "numeric",
+                  })}
+                </span>
+              </span>
+            </div>
+          )}
 
-          <p className="text-muted-foreground text-sm mb-4">
-            You are on the <strong className="text-foreground capitalize">{currentPlan === "free" ? "Starter" : currentPlan}</strong> plan.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <p className="text-muted-foreground text-sm">
+              You are on the <strong className="text-foreground capitalize">{currentPlan === "free" ? "Starter" : currentPlan}</strong> plan.
+            </p>
+            <div className="flex items-center bg-muted rounded-lg p-1 gap-0.5 self-start sm:self-auto">
+              <button
+                onClick={() => setBillingInterval("month")}
+                className={cn("text-xs font-medium px-3 py-1.5 rounded-md transition-colors",
+                  billingInterval === "month" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >Monthly</button>
+              <button
+                onClick={() => setBillingInterval("year")}
+                className={cn("text-xs font-medium px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5",
+                  billingInterval === "year" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Annual
+                <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-bold",
+                  billingInterval === "year" ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary"
+                )}>−10%</span>
+              </button>
+            </div>
+          </div>
 
           <div className="grid sm:grid-cols-3 gap-4">
             {PLANS.map(plan => {
@@ -477,10 +523,21 @@ export default function SettingsPage() {
                     <div className="mb-4">
                       <h3 className="font-bold text-foreground">{plan.name}</h3>
                       <div className="flex items-baseline gap-1 mt-1">
-                        <span className="text-2xl font-bold">{plan.price}</span>
-                        <span className="text-muted-foreground text-sm">{plan.period}</span>
+                        <span className="text-2xl font-bold">
+                          {billingInterval === "year" && ANNUAL_PRICING[plan.planKey]
+                            ? ANNUAL_PRICING[plan.planKey]!.perMonth
+                            : plan.price}
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                          {billingInterval === "year" && ANNUAL_PRICING[plan.planKey] ? "/mo" : plan.period}
+                        </span>
                       </div>
-                      {plan.trial && !hasActiveSub && (
+                      {billingInterval === "year" && ANNUAL_PRICING[plan.planKey] && (
+                        <p className="text-xs text-primary font-medium mt-0.5">
+                          {ANNUAL_PRICING[plan.planKey]!.total} · save 10%
+                        </p>
+                      )}
+                      {plan.trial && !hasActiveSub && billingInterval === "month" && (
                         <p className="text-xs text-primary font-medium mt-1">{plan.trial}</p>
                       )}
                     </div>

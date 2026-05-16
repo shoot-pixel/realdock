@@ -24,6 +24,7 @@ const ClientsPage    = lazy(() => import("@/pages/clients"));
 const SettingsPage        = lazy(() => import("@/pages/settings"));
 const CheckoutPage        = lazy(() => import("@/pages/checkout"));
 const CheckoutReturnPage  = lazy(() => import("@/pages/checkout-return"));
+const SupportPage         = lazy(() => import("@/pages/support"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,6 +114,9 @@ function Router() {
         </Route>
         <Route path="/checkout">
           {() => <ProtectedRoute component={CheckoutPage} />}
+        </Route>
+        <Route path="/support">
+          {() => <ProtectedRoute component={SupportPage} />}
         </Route>
         <Route component={NotFound} />
       </Switch>

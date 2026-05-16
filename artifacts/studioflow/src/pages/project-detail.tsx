@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ImageIcon, Zap, Share2, Plus, ExternalLink, Eye as EyeIcon, Upload,
   Trash2, RefreshCw, Loader2, Star, GripVertical, Receipt, X, AlertTriangle, Pencil,
+  Cloud, Home, Sparkles, Moon, Layers, Paintbrush, Crop, LayoutGrid,
 } from "lucide-react";
 
 const STATUS_OPTIONS = [
@@ -42,6 +43,17 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "badge-completed",
   paid:      "badge-paid",
 };
+
+const AI_TOOLS = [
+  { type: "sky_replacement",       label: "Sky Replacement",    desc: "Swap dull skies for bright, dramatic ones.",        icon: Cloud,       credits: 2 },
+  { type: "virtual_staging",       label: "Virtual Staging",    desc: "Digitally furnish empty rooms to show potential.",   icon: Home,        credits: 5 },
+  { type: "declutter",             label: "Declutter",          desc: "Remove clutter and distracting objects.",            icon: Sparkles,    credits: 3 },
+  { type: "day_to_dusk",           label: "Day to Dusk",        desc: "Transform daylight shots into twilight scenes.",     icon: Moon,        credits: 3 },
+  { type: "hdr_enhancement",       label: "HDR Enhancement",    desc: "Balance exposure across highlights and shadows.",    icon: Layers,      credits: 2 },
+  { type: "object_removal",        label: "Object Removal",     desc: "Erase specific items cleanly from the scene.",       icon: Crop,        credits: 2 },
+  { type: "color_grading",         label: "Color Grading",      desc: "Professional tone and color correction.",            icon: Paintbrush,  credits: 1 },
+  { type: "furniture_replacement", label: "Furniture Replace",  desc: "Swap existing furniture for curated new pieces.",    icon: LayoutGrid,  credits: 5 },
+] as const;
 
 // ── Upload helper ─────────────────────────────────────────────────────────────
 
@@ -414,6 +426,9 @@ export default function ProjectDetailPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [confirmDeleteGalleryId, setConfirmDeleteGalleryId] = useState<number | null>(null);
+  const [aiToolDialog, setAiToolDialog] = useState<{ type: string; label: string; credits: number } | null>(null);
+  const [aiMediaId, setAiMediaId] = useState<number | null>(null);
+  const [submittingAiJob, setSubmittingAiJob] = useState(false);
 
   // DnD state
   const [orderedIds, setOrderedIds] = useState<number[]>([]);
@@ -646,6 +661,9 @@ export default function ProjectDetailPage() {
           <TabsList>
             <TabsTrigger value="media" data-testid="tab-media">Media</TabsTrigger>
             <TabsTrigger value="galleries" data-testid="tab-galleries">Galleries</TabsTrigger>
+            <TabsTrigger value="ai-tools" data-testid="tab-ai-tools">
+              <Zap className="w-3.5 h-3.5 mr-1.5" />AI Tools
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="media" className="mt-4 space-y-4">
@@ -778,7 +796,114 @@ export default function ProjectDetailPage() {
               </div>
             )}
           </TabsContent>
+          <TabsContent value="ai-tools" className="mt-4">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-foreground mb-0.5">AI Enhancement Tools</h3>
+              <p className="text-xs text-muted-foreground">
+                Select a tool, then choose which photo to apply it to.
+                Credits are deducted when the job starts.
+              </p>
+            </div>
+            {allMedia.length === 0 ? (
+              <div className="text-center py-16 border-2 border-dashed border-border rounded-xl">
+                <Zap className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm mb-1">No media uploaded yet</p>
+                <p className="text-xs text-muted-foreground/70">Upload photos first to use AI tools</p>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {AI_TOOLS.map(tool => (
+                  <button
+                    key={tool.type}
+                    data-testid={`ai-tool-${tool.type}`}
+                    onClick={() => {
+                      setAiToolDialog({ type: tool.type, label: tool.label, credits: tool.credits });
+                      setAiMediaId(allMedia[0]?.id ?? null);
+                    }}
+                    className="text-left rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:bg-primary/5 transition-all group"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                        <tool.icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                        {tool.credits} cr
+                      </span>
+                    </div>
+                    <p className="text-[13px] font-semibold text-foreground mb-1">{tool.label}</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{tool.desc}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
+
+        {/* AI Tool Dialog */}
+        <Dialog open={!!aiToolDialog} onOpenChange={v => { if (!v) setAiToolDialog(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                {aiToolDialog?.label}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                This job will consume <strong className="text-foreground">{aiToolDialog?.credits} AI credits</strong> from your monthly balance.
+              </p>
+              <div>
+                <Label className="mb-1.5 block">Apply to photo</Label>
+                <Select
+                  value={aiMediaId?.toString() ?? ""}
+                  onValueChange={v => setAiMediaId(Number(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a photo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allMedia.filter(m => m.mediaType === "photo" || !m.mediaType).map(m => (
+                      <SelectItem key={m.id} value={m.id.toString()}>
+                        {m.filename}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAiToolDialog(null)} disabled={submittingAiJob}>
+                Cancel
+              </Button>
+              <Button
+                disabled={!aiMediaId || submittingAiJob}
+                onClick={async () => {
+                  if (!aiMediaId || !aiToolDialog) return;
+                  const tkn = localStorage.getItem("sf_token");
+                  setSubmittingAiJob(true);
+                  try {
+                    const resp = await fetch(`/api/media/${aiMediaId}/ai-jobs`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tkn}` },
+                      body: JSON.stringify({ jobType: aiToolDialog.type }),
+                    });
+                    if (!resp.ok) throw new Error("Failed");
+                    toast({ title: "AI job started", description: `${aiToolDialog.label} is processing. Check back shortly.` });
+                    setAiToolDialog(null);
+                    setAiMediaId(null);
+                  } catch {
+                    toast({ title: "Could not start AI job", variant: "destructive" });
+                  } finally {
+                    setSubmittingAiJob(false);
+                  }
+                }}
+              >
+                {submittingAiJob ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Zap className="w-4 h-4 mr-1.5" />}
+                Start Job
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

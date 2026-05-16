@@ -9,7 +9,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowRight, ImageIcon, Zap, Users, Share2,
-  FolderOpen, Sparkles, SunMedium, Home, Layers, Settings
+  FolderOpen, Settings
 } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
@@ -22,13 +22,6 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   completed: { label: "Completed", className: "badge-completed" },
   paid:      { label: "Paid",      className: "badge-paid" },
 };
-
-const AI_TOOLS = [
-  { label: "Virtual Staging",  icon: Home,       href: "/projects", desc: "Add furniture" },
-  { label: "Sky Replace",      icon: SunMedium,  href: "/projects", desc: "Brighten exteriors" },
-  { label: "Day to Dusk",      icon: Layers,     href: "/projects", desc: "Twilight effect" },
-  { label: "Declutter",        icon: Sparkles,   href: "/projects", desc: "Remove objects" },
-];
 
 function formatRelativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -319,25 +312,6 @@ export default function DashboardPage() {
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* AI Tools */}
-            <div>
-              <SectionLabel>AI Tools</SectionLabel>
-              <div className="grid grid-cols-2 gap-2">
-                {AI_TOOLS.map(tool => (
-                  <Link key={tool.label} href={tool.href}>
-                    <div
-                      data-testid={`ai-tool-${tool.label.toLowerCase().replace(/ /g, "-")}`}
-                      className="rounded-lg border border-border bg-card p-3.5 hover:bg-muted/40 hover:border-primary/25 transition-all cursor-pointer group"
-                    >
-                      <tool.icon className="w-4 h-4 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-[12.5px] font-medium text-foreground leading-tight">{tool.label}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{tool.desc}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
             </div>
 
             {/* Quick nav */}

@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   LayoutDashboard, FolderOpen, Users, Settings, LogOut, Sun, Moon,
-  Menu, X, ChevronRight, Bell, Eye, Download as DownloadIcon,
+  Menu, X, ChevronRight, Bell, Eye, Download as DownloadIcon, HelpCircle,
 } from "lucide-react";
 import RealDockLogo from "@/components/RealDockLogo";
 import { cn } from "@/lib/utils";
@@ -347,6 +347,13 @@ export default function Layout({ children, title, breadcrumbs }: LayoutProps) {
             )}
           </div>
 
+          <a
+            href="/support"
+            title="Help Center"
+            className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </a>
           <NotificationBell />
           <button
             onClick={toggleDark}
