@@ -13,7 +13,7 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 export default function CheckoutReturnPage() {
-  const { token, login } = useAuth();
+  const { login, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [status, setStatus] = useState<SessionStatus>("loading");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -21,13 +21,23 @@ export default function CheckoutReturnPage() {
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Wait for the auth context to finish reading from localStorage before
+    // doing anything — this prevents firing with token = null on the first
+    // render and accidentally using a stale or missing identity.
+    if (authLoading) return;
+
     const sessionId = new URLSearchParams(window.location.search).get("session_id");
     if (!sessionId) { setStatus("error"); return; }
+
+    // Read the token directly from localStorage so we always get the value
+    // that was persisted most recently (e.g. by the registration flow),
+    // regardless of any React state propagation delay.
+    const currentToken = localStorage.getItem("sf_token");
 
     const doFetch = async () => {
       try {
         const resp = await fetch(`/api/stripe/checkout-session/${sessionId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: currentToken ? { Authorization: `Bearer ${currentToken}` } : {},
         });
         const data = await resp.json() as { status?: string; customerEmail?: string };
         const s = (data.status as SessionStatus) ?? "error";
@@ -40,12 +50,12 @@ export default function CheckoutReturnPage() {
           await new Promise(r => setTimeout(r, 1500));
           try {
             const userResp = await fetch("/api/users/me", {
-              headers: { Authorization: `Bearer ${token}` },
+              headers: currentToken ? { Authorization: `Bearer ${currentToken}` } : {},
             });
             if (userResp.ok) {
               const freshUser = await userResp.json() as { id?: number; plan?: string; email?: string; name?: string };
-              if (freshUser.id && token) {
-                login(token, freshUser as Parameters<typeof login>[1]);
+              if (freshUser.id && currentToken) {
+                login(currentToken, freshUser as Parameters<typeof login>[1]);
                 setNewPlanLabel(PLAN_LABELS[freshUser.plan ?? ""] ?? "Pro");
               }
             }
@@ -64,7 +74,10 @@ export default function CheckoutReturnPage() {
     return () => {
       if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
     };
-  }, [token, login, setLocation]);
+  // authLoading going false is the single trigger; everything else is read
+  // directly from localStorage or stable refs — no stale closure risk.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
 
   const goToDashboard = () => {
     if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
